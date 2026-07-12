@@ -306,9 +306,10 @@ public:
 		}
 		for ( std::shared_ptr< Entity > worker : entities.getEntities("Worker") )
 		{
+			CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
+			CMove& workerMove = worker->getComponent< CMove >();
 			if ( damagedMonuments.size() )
 			{
-				CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
 				Vector3 monumentPos = damagedMonuments.front()->getComponent< CTransform3D >().pos;
 				Vector3 direction = (Vector3){monumentPos.x - workerTransform.pos.x, monumentPos.y - workerTransform.pos.y, 0.0f};
 				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
@@ -332,6 +333,8 @@ public:
 //				workerTransform.pos = closestPos;
 				if ( closestDistance <= 30.0f )
 				{
+					worker->getComponent< CWorker >().state = WorkerState::HEAL;
+					workerMove.move = (Vector3){0.0f, 0.0f, 0.0f};
 					CHealth& monumentHealth = closestMonument->getComponent< CHealth >();
 					monumentHealth.hp += 0.25f;
 					if ( monumentHealth.hp >= monumentHealth.max )
@@ -360,12 +363,29 @@ public:
 				else
 				{
 //					float moveSpeed = 80.0f * (1.0f / 60.0f);
+					worker->getComponent< CWorker >().state = WorkerState::WALK;
 					float moveSpeed = worker->getComponent< CMove >().speed;
 					direction = (Vector3){closestPos.x - workerTransform.pos.x, closestPos.y - workerTransform.pos.y, 0.0f};
-					workerTransform.pos.x += (direction.x / closestDistance) * moveSpeed;
-					workerTransform.pos.y += (direction.y / closestDistance) * moveSpeed;
+//					workerTransform.pos.x += (direction.x / closestDistance) * moveSpeed;
+//					workerTransform.pos.y += (direction.y / closestDistance) * moveSpeed;
+					workerMove.move.x = (direction.x / closestDistance) * moveSpeed;
+					workerMove.move.y = (direction.y / closestDistance) * moveSpeed;
 				}
 			}
+			else
+			{
+				worker->getComponent< CWorker >().state = WorkerState::ROAM;	
+			}
+			if ( workerTransform.pos.x + workerMove.move.x >= 509 || workerTransform.pos.x + workerMove.move.x <= -509 )
+			{
+				workerMove.move.x *= -1;
+			}
+			workerTransform.pos.x += workerMove.move.x;
+			if ( workerTransform.pos.y +  workerMove.move.y >= 360.0f || workerTransform.pos.y +  workerMove.move.y <= -360.0f )
+			{
+				workerMove.move.y *= -1;
+			}
+			workerTransform.pos.y += workerMove.move.y;
 		}
 	}
 	virtual void render()
@@ -387,7 +407,7 @@ public:
 		entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
 		entity->addComponent< CWorker >();
 		entity->addComponent< CHealth >(50.0f, 50.0f);
-		entity->addComponent< CMove >();
+		entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
 		CModel& modelComponent = entity->addComponent< CModel >();
 		modelComponent.model = LoadModel("./assets/character-orc.glb");
 	}

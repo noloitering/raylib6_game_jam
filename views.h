@@ -299,7 +299,7 @@ public:
 		if ( state == GameState::RUNNING )
 		{
 			// spawning
-			for ( std::shared_ptr< Entity > town : entities->entities.getEntities("Town") )
+			for (std::shared_ptr< Entity > town : entities->entities.getEntities("Town"))
 			{
 				if ( town->getComponent< CSpawner >().spawnRate > 0 && clock->getFrame() % town->getComponent< CSpawner >().spawnRate == 0 )
 				{
@@ -309,7 +309,7 @@ public:
 						entity->addComponent< CTransform3D >(town->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f});
 						entity->addComponent< CWorker >();
 						entity->addComponent< CHealth >(50.0f, 50.0f);
-						entity->addComponent< CMove >();
+						entity->addComponent< CMove >(80.0f, town->getComponent< CTransform3D >().pos);
 						CModel& modelComponent = entity->addComponent< CModel >();
 						modelComponent.model = LoadModel("./assets/character-orc.glb");		
 						resources->workers += 1;
@@ -350,7 +350,7 @@ public:
 					}
 				}
 			}
-			for ( std::shared_ptr< Entity > town : entities->entities.getEntities("Town") )
+			for (std::shared_ptr< Entity > town : entities->entities.getEntities("Town"))
 			{
 				if ( town->hasComponent< CTown >() )
 				{
@@ -396,6 +396,32 @@ public:
 						{
 							setVictory(true);
 						}
+					}
+				}
+			}
+			for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Worker"))
+			{
+				if ( worker->getComponent< CWorker >().state == WorkerState::ROAM )
+				{
+					CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
+					CMove& workerMove = worker->getComponent< CMove >();
+					std::cout << "worker pos: " << workerTransform.pos.x << ", " << workerTransform.pos.y << std::endl;
+					std::cout << "worker home: " << workerMove.home.x << ", " << workerMove.home.y << std::endl;
+					Vector3 toHome = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, workerMove.home.z - workerTransform.pos.z};
+					float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
+					std::cout << "distance to home: " << distanceToHome << std::endl;
+					if ( distanceToHome > 150.0f )
+					{
+//						distanceToHome = std::sqrt(distanceToHome);
+						workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
+						workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+					}
+					else if ( clock->getFrame() % 60 == 0 )
+					{
+						int randomAngle = GetRandomValue(0, 360);
+						Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
+						workerMove.move.x = workerMove.speed * randomDir.x;
+						workerMove.move.y = workerMove.speed * randomDir.y;
 					}
 				}
 			}
@@ -505,6 +531,10 @@ public:
 								break;
 							}
 						}
+					}
+					else
+					{
+						game->sfx->play(game->assets->get< Sound >("nomana.wav"));
 					}
 				}
 				

@@ -39,6 +39,7 @@ int main()
     entityModel->initialize();
 	std::cout << "entities initialized" << std::endl;
 	scene->initialize();
+	game.assets->addSound("nomana.wav", "./assets/nomana.wav");
 	std::cout << "scene initialized" << std::endl;
 #if defined(PLATFORM_WEB)
 	std::cout << "running for web" << std::endl;

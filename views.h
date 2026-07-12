@@ -593,7 +593,7 @@ public:
 				else if ( townTier == '3' )
 				{
 					buildingModel.model = LoadModel("./assets/building_castle_yellow.gltf");
-					scaleFactorX = cell->width() * camera.position.y / 1400.0f;
+					scaleFactorX = cell->width() * camera.position.y / 1100.0f;
 					town->addComponent< CTown >(6);
 				}
 				Vector3 elemPosition3D = convert2DPos3D(cell->position);

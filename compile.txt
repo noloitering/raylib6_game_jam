@@ -1,7 +1,9 @@
-em++ -o index.html main.cpp entity.cpp ../../libs/NoMVC/src/View.cpp ../../libs/NoMVC/src/Controller.cpp ../../libs/NoSFX/src/Audio.cpp ../../libs/NoGUI/src/Core.cpp ../../libs/NoGUI/src/GUI.cpp --preload-file ./assets --shell-file ../../libs/raylib6/src/shell.html -I../../libs/raylib6/src -L../../libs/raylib6/src -lraylib -s USE_GLFW=3 -DPLATFORM_WEB -Os -Wall
+em++ -o index.html main.cpp entity.cpp ../../libs/NoMVC/src/View.cpp ../../libs/NoMVC/src/Controller.cpp ../../libs/NoSFX/src/Audio.cpp ../../libs/NoGUI/src/Core.cpp ../../libs/NoGUI/src/GUI.cpp --preload-file ./assets --shell-file ../../libs/raylib6/src/minshell.html -I../../libs/raylib6/src -L../../libs/raylib6/src -lraylib -s USE_GLFW=3 -DPLATFORM_WEB -Os -Wall -sASSERTIONS -sINITIAL_MEMORY=32MB
 
 
 
 Hex means 6 which is the number of Satan in biblical scripture. (666). So a hex is black magic of the occult, while a curse is more general, and can be done by anyone.
 Merge: to blend gradually by stages that blur distinctions
 to cause to combine, unite, or coalesce
+
+"Magic Portal" (https://skfb.ly/opoAZ) by Nick Broad is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).

@@ -24,7 +24,53 @@ protected:
 	{
 		if ( win )
 		{
-			std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+			std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
+			gui->setEnabled(Overlay::VICTORY);
+			state = GameState::VICTORY;
+		}
+		else
+		{
+			std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
+			std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+			std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+			std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+			gui->getPage(Overlay::RESOURCES)->setEnabled(true);
+			gui->getPage(Overlay::TABS)->setEnabled(true);
+			gui->getPage(Overlay::BUILDINGS)->setEnabled(false);
+			gui->getPage(Overlay::VICTORY)->setEnabled(false);
+//			for ( std::shared_ptr< NoGUI::Element > cell : grid->getPage(GameGrid::GRID)->getElements() )
+//			{
+//				cell->kill();
+//			}
+//			for (int i=0; i < grid->size();i++)
+//			{
+//				grid->removePage(i);
+//			}
+			grid->clear();
+			for ( std::shared_ptr< Entity > entity : entities->entities.getEntities() )
+			{
+				if ( entity->hasComponent< CModel >() )
+				{
+					UnloadModel(entity->getComponent< CModel >().model);
+				}
+				entity->destroy();
+			}
+			resources->mana = 0;
+			resources->maxMana = 100.0f;
+			resources->manaGen = 0.05f;
+			resources->workers = 1;
+			resources->maxWorkers = 5;
+			resources->units = 0;
+			resources->maxUnits = 2;
+//			grid->update();
+			grid->initialize();
+			grid->update();
+			entities->update();
+			entities->initialize();
+			entities->update();
+			initialize();
+			entities->update();
+			state = GameState::RUNNING;
 		}
 	}
 public:
@@ -346,6 +392,10 @@ public:
 							monumentCell->building->destroy();
 							monumentCell->building = nullptr;
 						}
+						if ( town->getComponent< CTown >().influence > 5 )
+						{
+							setVictory(true);
+						}
 					}
 				}
 			}
@@ -355,6 +405,10 @@ public:
 			if ( resources->mana > resources->maxMana )
 			{
 				resources->mana = resources->maxMana;
+			}
+			if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
+			{
+				currentBuild = BuildingType::NONE;
 			}
 			if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
 			{
@@ -391,6 +445,10 @@ public:
 				}
 			}
 		}
+		// if ( IsKeyPressed(KEY_R) )
+		// {
+			// setVictory(false);
+		// }
 //		std::cout << "scene updated frame " << clock->getFrame() << std::endl;
 //		render();
 	}
@@ -482,6 +540,10 @@ public:
 						currentBuild = BuildingType::MONUMENT;
 						gui->getPage(Overlay::TABS)->setActive(true);
 					}
+				}
+				else if ( TextIsEqual("Restart", elem->getTag()) )
+				{
+					setVictory(false);
 				}
 				
 				break;

@@ -197,7 +197,7 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2};
+	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, VICTORY=3};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
@@ -208,6 +208,7 @@ public:
 	// shapes
 	std::shared_ptr< NoGUI::nShape > containerShape = std::make_shared< NoGUI::nShape >(4, containerFill, tabOutline);
 	std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
+	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
 	Overlay()
 		: NoGUI::Manager(false) {}
 
@@ -256,11 +257,28 @@ public:
 		buildPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
 		buildPage->addElement< NoGUI::Button >(tabShape, buildingTransform, "Building", "Monument");
 	}
+	void addVictoryPage()
+	{
+		std::shared_ptr< NoGUI::Page > victoryPage = addPage(false);
+		std::shared_ptr< NoGUI::Fill > messageFill = std::make_shared< NoGUI::Fill >((Color){255, 0, 110, 255});
+		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+		std::shared_ptr< NoGUI::CContainer > labelComponents = victoryPage->addComponents("Label");
+		labelComponents->addComponent< NoGUI::CText >(messageFill, nullptr, 40.0f);
+		std::shared_ptr< NoGUI::CContainer > restartComponents = victoryPage->addComponents("Restart");
+		restartComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		Vector2 messageRadius = (Vector2){360.0f, 50.0f};
+		Vector2 buttonRadius = (Vector2){150.0f, 30.0f};
+		NoGUI::Transform messageTransform = NoGUI::Transform((Vector2){360.0f, 300.0f}, messageRadius);
+		NoGUI::Transform buttonTransform = NoGUI::Transform((Vector2){360.0f, 360.0f}, buttonRadius);
+		victoryPage->addElement< NoGUI::Element >(invisShape, messageTransform, "Label", "YOU WIN!");
+		victoryPage->addElement< NoGUI::Button >(tabShape, buttonTransform, "Restart", "Restart");
+	}
 	void initialize()
 	{
 		addResourcePage();
 		addActionTabsPage();
 		addBuildPage();
+		addVictoryPage();
 	}
 };
 

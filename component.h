@@ -44,9 +44,9 @@ public:
 	// CModel(std::shared_ptr< Model > modelData=nullptr)
 		// : model(modelData) {}
 	// std::shared_ptr< Model > model = nullptr;
-	CModel(const Model& m={0}) 
+	CModel(std::shared_ptr< Model > m=nullptr) 
 		: model(m) {}
-	Model model;
+	std::shared_ptr< Model > model;
 };
 
 class CHealth : public CInterface

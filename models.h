@@ -345,12 +345,12 @@ public:
 						if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
 						{
 							monumentBuilding.state = BuildingState::BUILT;
-							CTransform3D& closestMonumentTransform = closestMonument->getComponent< CTransform3D >();
-							closestMonumentTransform.scale.x *=  3;
-							closestMonumentTransform.scale.y *=  3;
-							closestMonumentTransform.scale.z *=  3;
-							UnloadModel(closestMonument->getComponent< CModel >().model);
-							closestMonument->getComponent< CModel >().model = LoadModel("./assets/unit-tower.glb");
+							// CTransform3D& closestMonumentTransform = closestMonument->getComponent< CTransform3D >();
+							// closestMonumentTransform.scale.x *=  3;
+							// closestMonumentTransform.scale.y *=  3;
+							// closestMonumentTransform.scale.z *=  3;
+//							UnloadModel(closestMonument->getComponent< CModel >().model);
+//							closestMonument->getComponent< CModel >().model = LoadModel("./assets/unit-tower.glb");
 						}
 						std::cout << static_cast<int>(monumentBuilding.state) << std::endl;
 						// TODO: load texture
@@ -396,20 +396,20 @@ public:
 			CModel& model = entity->getComponent< CModel >();
 			if ( transform.owned && model.owned )
 			{
-//			DrawModel(*(entity->getComponent< CModel >().model.get()), entity->getComponent< CTransform3D >().pos, 1.0f, WHITE);
-				DrawModelEx(model.model, transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
+				DrawModelEx(*(entity->getComponent< CModel >().model.get()), transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
+//				DrawModelEx(model.model, transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
 			}
 		}
 	}
 	void initialize()
 	{
-		std::shared_ptr< Entity > entity = entities.addEntity("Worker", "Goblin");
-		entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
-		entity->addComponent< CWorker >();
-		entity->addComponent< CHealth >(50.0f, 50.0f);
-		entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
-		CModel& modelComponent = entity->addComponent< CModel >();
-		modelComponent.model = LoadModel("./assets/character-orc.glb");
+		// std::shared_ptr< Entity > entity = entities.addEntity("Worker", "Goblin");
+		// entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
+		// entity->addComponent< CWorker >();
+		// entity->addComponent< CHealth >(50.0f, 50.0f);
+		// entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
+		// CModel& modelComponent = entity->addComponent< CModel >();
+		// modelComponent.model = LoadModel("./assets/character-orc.glb");
 	}
 };
 

@@ -32,6 +32,16 @@ int main()
 	game.addModel(gridModel);
 	game.addModel(GUIModel);
 	game.addModel(entityModel);
+	game.assets->addSound("nomana.wav", "./assets/nomana.wav");
+	game.assets->addModel("worker", "./assets/character-orc.glb");
+	game.assets->addModel("obelisk", "./assets/unit-tower.glb");
+	game.assets->addModel("construction", "./assets/wood-structure.glb");
+	game.assets->addModel("portal", "./assets/magic_portal.glb");
+	game.assets->addModel("town0", "./assets/building_home_A_yellow.gltf");
+	game.assets->addModel("town1", "./assets/building_home_B_yellow.gltf");
+	game.assets->addModel("town2", "./assets/building_barracks_yellow.gltf");
+	game.assets->addModel("town3", "./assets/building_castle_yellow.gltf");
+	std::cout << "assets loaded" << std::endl;
 	gridModel->initialize();
 	std::cout << "grid initialized" << std::endl;
 	GUIModel->initialize();
@@ -39,7 +49,6 @@ int main()
     entityModel->initialize();
 	std::cout << "entities initialized" << std::endl;
 	scene->initialize();
-	game.assets->addSound("nomana.wav", "./assets/nomana.wav");
 	std::cout << "scene initialized" << std::endl;
 #if defined(PLATFORM_WEB)
 	std::cout << "running for web" << std::endl;

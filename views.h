@@ -49,10 +49,10 @@ protected:
 			grid->clear();
 			for ( std::shared_ptr< Entity > entity : entities->entities.getEntities() )
 			{
-				if ( entity->hasComponent< CModel >() )
-				{
-					UnloadModel(entity->getComponent< CModel >().model);
-				}
+				// if ( entity->hasComponent< CModel >() )
+				// {
+					// UnloadModel(entity->getComponent< CModel >().model);
+				// }
 				entity->destroy();
 			}
 			resources->mana = 0;
@@ -311,7 +311,8 @@ public:
 						entity->addComponent< CHealth >(50.0f, 50.0f);
 						entity->addComponent< CMove >(80.0f, town->getComponent< CTransform3D >().pos);
 						CModel& modelComponent = entity->addComponent< CModel >();
-						modelComponent.model = LoadModel("./assets/character-orc.glb");		
+//						modelComponent.model = LoadModel("./assets/character-orc.glb");
+						modelComponent.model = game->assets->get< Model >("worker");
 						resources->workers += 1;
 					}
 				}
@@ -327,6 +328,11 @@ public:
 						if ( buildingComp.state == BuildingState::BUILT )
 						{
 //							std::shared_ptr< NoGUI::Page > gridPage = gui->getPage(GameGrid::GRID);
+							building->getComponent< CModel >().model = game->assets->get< Model >("obelisk");
+							CTransform3D& buildingTransform = building->getComponent< CTransform3D >();
+							buildingTransform.scale.x *=  3;
+							buildingTransform.scale.y *=  3;
+							buildingTransform.scale.z *=  3;
 							Vector2 monumentPos = building->getComponent< CTransform2D >().pos;
 							std::shared_ptr< NoGUI::Element > monumentTile = gridPage->getElement(monumentPos.x * CELLSX + monumentPos.y);
 							for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(monumentTile, 2))
@@ -375,8 +381,9 @@ public:
 					{
 						// convert Town cell into portal
 						CTransform3D& townTransform = town->getComponent< CTransform3D >();
-						UnloadModel(town->getComponent< CModel >().model);
-						town->getComponent< CModel >().model = LoadModel("./assets/magic_portal.glb");
+//						UnloadModel(town->getComponent< CModel >().model);
+//						town->getComponent< CModel >().model = LoadModel("./assets/magic_portal.glb");
+						town->getComponent< CModel >().model = game->assets->get< Model >("portal");
 						town->getComponent< CTransform3D >().scale = portalSize;
 						town->getComponent< CSpawner >().spawnRate = 5 * 60;
 						town->getComponent< CTown >().owned = false;
@@ -388,7 +395,7 @@ public:
 							std::shared_ptr< Tile > monumentCell = std::dynamic_pointer_cast< Tile >(monumentCells.at(i));
 							monumentCell->setShape(grid->swampShape);
 							// destroy monument entities
-							UnloadModel(monumentCell->building->getComponent< CModel >().model);
+//							UnloadModel(monumentCell->building->getComponent< CModel >().model);
 							monumentCell->building->destroy();
 							monumentCell->building = nullptr;
 						}
@@ -518,7 +525,8 @@ public:
 								float scaleFactorZ = scaleFactorY - 4.0f;
 								building->addComponent< CTransform3D >(elemPosition3D, Vector3{scaleFactorX, scaleFactorY, scaleFactorZ});
 								CModel& buildingModel = building->addComponent< CModel >();
-								buildingModel.model = LoadModel("./assets/wood-structure.glb");
+//								buildingModel.model = LoadModel("./assets/wood-structure.glb");
+								buildingModel.model = game->assets->get< Model >("construction");
 								int row = elem->getId() / CELLSX;
 								int column = elem->getId() % CELLSX;
 								building->addComponent< CTransform2D >((Vector2){(float)row, (float)column});
@@ -586,7 +594,13 @@ public:
 		std::shared_ptr< GameGrid > gui = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
 		gui->update();
 		std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-//		for (std::shared_ptr< NoGUI::Element > cell : gui->getPage(GameGrid::GRID)->getElements())
+		std::shared_ptr< Entity > entity = entities->entities.addEntity("Worker", "Goblin");
+		entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
+		entity->addComponent< CWorker >();
+		entity->addComponent< CHealth >(50.0f, 50.0f);
+		entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
+		CModel& modelComponent = entity->addComponent< CModel >();
+		modelComponent.model = game->assets->get< Model >("worker");
 		for(int i=0; i < gui->getPage(GameGrid::GRID)->getElements().size(); i++)
 		{
 			std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(gui->getPage(GameGrid::GRID)->getElements()[i]);
@@ -602,27 +616,31 @@ public:
 				char townTier = cell->getInner()[4];
 				if ( townTier == '0')
 				{
-					buildingModel.model = LoadModel("./assets/building_home_A_yellow.gltf");
+//					buildingModel.model = LoadModel("./assets/building_home_A_yellow.gltf");
+					buildingModel.model = game->assets->get< Model >("town0");
 					scaleFactorX = cell->width() * camera.position.y / 500.0f;
 					angle = 180;
 					town->addComponent< CTown >(1);
 				}
 				else if ( townTier == '1' )
 				{
-					buildingModel.model = LoadModel("./assets/building_home_B_yellow.gltf");
+//					buildingModel.model = LoadModel("./assets/building_home_B_yellow.gltf");
+					buildingModel.model = game->assets->get< Model >("town1");
 					scaleFactorX = cell->width() * camera.position.y / 600.0f;
 					angle = 180;
 					town->addComponent< CTown >(2);
 				}
 				else if ( townTier == '2' )
 				{
-					buildingModel.model = LoadModel("./assets/building_barracks_yellow.gltf");
+//					buildingModel.model = LoadModel("./assets/building_barracks_yellow.gltf");
+					buildingModel.model = game->assets->get< Model >("town2");
 					scaleFactorX = cell->width() * camera.position.y / 1000.0f;
 					town->addComponent< CTown >(4);
 				}
 				else if ( townTier == '3' )
 				{
-					buildingModel.model = LoadModel("./assets/building_castle_yellow.gltf");
+//					buildingModel.model = LoadModel("./assets/building_castle_yellow.gltf");
+					buildingModel.model = game->assets->get< Model >("town3");
 					scaleFactorX = cell->width() * camera.position.y / 1100.0f;
 					town->addComponent< CTown >(6);
 				}

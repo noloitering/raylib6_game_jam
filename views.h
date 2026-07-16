@@ -38,21 +38,9 @@ protected:
 			gui->getPage(Overlay::TABS)->setEnabled(true);
 			gui->getPage(Overlay::BUILDINGS)->setEnabled(false);
 			gui->getPage(Overlay::VICTORY)->setEnabled(false);
-//			for ( std::shared_ptr< NoGUI::Element > cell : grid->getPage(GameGrid::GRID)->getElements() )
-//			{
-//				cell->kill();
-//			}
-//			for (int i=0; i < grid->size();i++)
-//			{
-//				grid->removePage(i);
-//			}
 			grid->clear();
 			for ( std::shared_ptr< Entity > entity : entities->entities.getEntities() )
 			{
-				// if ( entity->hasComponent< CModel >() )
-				// {
-					// UnloadModel(entity->getComponent< CModel >().model);
-				// }
 				entity->destroy();
 			}
 			resources->mana = 0;
@@ -62,7 +50,6 @@ protected:
 			resources->maxWorkers = 5;
 			resources->units = 0;
 			resources->maxUnits = 2;
-//			grid->update();
 			grid->initialize();
 			grid->update();
 			entities->update();
@@ -273,13 +260,20 @@ public:
 		}
 		else
 		{
-			float alphaPercent = (float)framesRemain / 75.0f;
+			float alphaPercent = (float)framesRemain / endrframe;
 			grid->convertingSwampFill->col = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 			grid->convertingSwampFill->hoverCol = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 			grid->convertingPortalFill->col = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 			grid->convertingPortalFill->hoverCol = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 		}
-//		gui->getPage(GameGrid::GRID)->render();
+		std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
+		if ( noManaBar->getShape()->fill->col.a > 0 )
+		{
+			
+			float alphaPercent = (float)framesRemain / (endFrame - 1);
+			noManaBar->getShape()->fill->col.a = static_cast<unsigned char>(255 * (1 - alphaPercent));
+			noManaBar->getShape()->outline->fill->col.a = static_cast<unsigned char>(255 *  (1 - alphaPercent));
+		}
 		grid->render();
 		std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 		BeginMode3D(camera);
@@ -451,6 +445,10 @@ public:
 //		}
 		std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 		gui->getPage(Overlay::RESOURCES)->getElements().front()->setInner(TextFormat("%.0f", resources->mana));
+		std::shared_ptr< NoGUI::Slider > manaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").front());
+		std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
+		manaBar->slideTo(resources->mana);
+		noManaBar->slideTo(resources->mana);
 		if ( IsKeyPressed(KEY_P) )
 		{
 			switch (state)
@@ -488,8 +486,38 @@ public:
 	
 	void onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent hevent, NoGUI::FocusEvent fevent)
 	{
-		switch (fevent)
+		switch (hevent)
 		{
+			case NoGUI::HoverEvent::ONHOVER:
+			{
+				if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
+				{
+					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+					grid->getPage(GameGrid::GRID)->setActive(false);
+				}
+				
+				break;
+			}
+			
+			case NoGUI::HoverEvent::HOVERING:
+			{
+				
+				break;
+			}
+			
+			case NoGUI::HoverEvent::OFFHOVER:
+			{
+				if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
+				{
+					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+					grid->getPage(GameGrid::GRID)->setActive(true);
+				}
+				
+				break;
+			}
+		}
+		switch (fevent)
+		{	
 			case NoGUI::FocusEvent::ONFOCUS:
 			{
 //				if ( TextIsEqual("Swamp", elem->getInner()) && building)
@@ -542,6 +570,10 @@ public:
 					}
 					else
 					{
+						std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+						std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
+						noManaBar->getShape()->fill->col.a = 255;
+						noManaBar->getShape()->outline->fill->col.a = 255;
 						game->sfx->play(game->assets->get< Sound >("nomana.wav"));
 					}
 				}

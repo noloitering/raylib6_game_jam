@@ -202,13 +202,19 @@ public:
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
 	std::shared_ptr< NoGUI::Fill > containerFill = std::make_shared< NoGUI::Fill >(GRAY);
+	std::shared_ptr< NoGUI::Fill > manaBarFill = std::make_shared< NoGUI::Fill >(VIOLET);
+	std::shared_ptr< NoGUI::Fill > noManaFill = std::make_shared< NoGUI::Fill >(MAROON);
 	// outlines
+	std::shared_ptr< NoGUI::Fill > noManaOutlineFill = std::make_shared< NoGUI::Fill >(RED);
 	std::shared_ptr< NoGUI::Fill > tabOutlineFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
 	std::shared_ptr< NoGUI::Outline > tabOutline = std::make_shared< NoGUI::Outline >(tabOutlineFill, 2);
+	std::shared_ptr< NoGUI::Outline > noManaOutline = std::make_shared< NoGUI::Outline >(noManaOutlineFill, 2);
 	// shapes
 	std::shared_ptr< NoGUI::nShape > containerShape = std::make_shared< NoGUI::nShape >(4, containerFill, tabOutline);
+	std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
 	std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
 	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
+	std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
 	Overlay()
 		: NoGUI::Manager(false) {}
 
@@ -227,18 +233,29 @@ public:
 		std::shared_ptr< NoGUI::CContainer > labelComponents = resourcePage->addComponents("Label");
 		labelComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
 		std::shared_ptr< NoGUI::nShape > labelShape = std::make_shared< NoGUI::nShape >(4, invis);
-		Vector2 manaLabelRadius = (Vector2){50, 20};
-		Vector2 manaLabelPos = (Vector2){720 - manaLabelRadius.x, 700 - manaLabelRadius.y * 2};
+		Vector2 manaLabelRadius = (Vector2){50, 10};
+		Vector2 manaBarRadius = (Vector2){50, 20};
+		Vector2 manaLabelPos = (Vector2){720 - manaLabelRadius.x, 700 - manaLabelRadius.y * 7};
+		Vector2 manaBarPos = (Vector2){720 - manaLabelRadius.x, 700 - manaBarRadius.y * 2};
 		NoGUI::Transform manaLabelTransform = NoGUI::Transform(manaLabelPos, manaLabelRadius, NoGUI::Align());
+		NoGUI::Transform manaBarTransform = NoGUI::Transform(manaBarPos, manaBarRadius, NoGUI::Align());
 		resourcePage->addElement< NoGUI::Element >(labelShape, manaLabelTransform, "Label", "0");
+		std::shared_ptr< NoGUI::Slider > manaBar = resourcePage->addElement< NoGUI::Slider >(containerShape, manaBarTransform, "Mana");
+		std::shared_ptr< NoGUI::Slider > noManaBar = resourcePage->addElement< NoGUI::Slider >(noManaShape, manaBarTransform, "Mana"); 
+		manaBar->setSlide(manaBarShape, NoGUI::Align(-1, 0));
+		manaBar->setActive(false);
+		noManaBar->setSlide(manaBarShape, NoGUI::Align(-1, 0));
+		noManaBar->setActive(false);
+		noManaBar->getShape()->fill->col.a = 0;
+		noManaBar->getShape()->outline->fill->col.a = 0;
 	}
 	void addActionTabsPage()
 	{
 		std::shared_ptr< NoGUI::Page > tabPage = addPage(true);
 		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
 		std::shared_ptr< NoGUI::CContainer > tabComponents = tabPage->addComponents("Tab");
-		tabComponents->addComponent< NoGUI::CText >(textFill, nullptr, 10.0f);
-		Vector2 buildRadius = (Vector2){20.0f, 12.0f};
+		tabComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		Vector2 buildRadius = (Vector2){35.0f, 20.0f};
 		Vector2 buildPos = (Vector2){720 - buildRadius.x * 3, buildRadius.y};
 		NoGUI::Transform buildTransform = NoGUI::Transform(buildPos, buildRadius);
 		tabPage->addElement< NoGUI::Button >(tabShape, buildTransform, "Tab", "Build");

@@ -308,9 +308,11 @@ public:
 	virtual void update()
 	{
 		entities.update();
-		// movement
+		// state
+		std::vector< std::shared_ptr< Entity > > buildings = entities.getEntities("Building");
+		std::vector< std::shared_ptr< Entity > > workers = entities.getEntities("Worker");
 		std::vector< std::shared_ptr< Entity > > damagedMonuments;
-		for ( std::shared_ptr< Entity > building : entities.getEntities("Building") )
+		for ( std::shared_ptr< Entity > building : buildings )
 		{
 			if ( building->getComponent< CBuilding >().type == BuildingType::MONUMENT )
 			{
@@ -321,10 +323,95 @@ public:
 				}
 			}
 		}
-		for ( std::shared_ptr< Entity > worker : entities.getEntities("Worker") )
+		for ( std::shared_ptr< Entity > enemy : entities.getEntities("Enemy") )
+		{
+			enemy->getComponent< CWorker >().state = WorkerState::ROAM;
+			if ( buildings.size() )
+			{
+				Vector3 buildingPos = buildings.front()->getComponent< CTransform3D >().pos;
+				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
+				Vector3 direction = (Vector3){buildingPos.x - enemyTransform.pos.x, buildingPos.y - enemyTransform.pos.y, 0.0f};
+				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+				int closest = 0;
+				for (int i=1; i < buildings.size();i++)
+				{
+					std::shared_ptr< Entity > building = buildings.at(i);
+					buildingPos = building->getComponent< CTransform3D >().pos;
+					direction.x = buildingPos.x - enemyTransform.pos.x;
+					direction.y = buildingPos.y - enemyTransform.pos.y;
+					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+					if ( distance < closestDistance )
+					{
+						closestDistance = distance;
+						closest = i;
+					}
+				}
+				std::shared_ptr< Entity > closestBuilding = buildings.at(closest);
+				closestDistance = std::sqrt(closestDistance);
+				CMove& enemyMove = enemy->getComponent< CMove >();
+				if ( closestDistance <= 30.0f  )
+				{
+					enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+					enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+					CHealth& buildingHealth = closestBuilding->getComponent< CHealth >();
+					buildingHealth.hp -= 0.25f;
+				}
+				else if ( closestDistance <= 100.0f )
+				{
+					enemy->getComponent< CWorker >().state = WorkerState::WALK;
+					float moveSpeed = enemy->getComponent< CMove >().speed;
+					Vector3 closestPos = closestBuilding->getComponent< CTransform3D >().pos;
+					direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
+					enemyMove.move.x = (direction.x / closestDistance) * moveSpeed;
+					enemyMove.move.y = (direction.y / closestDistance) * moveSpeed;
+				}
+			}
+			if ( workers.size() )
+			{
+				Vector3 workerPos = workers.front()->getComponent< CTransform3D >().pos;
+				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
+				Vector3 direction = (Vector3){workerPos.x - enemyTransform.pos.x, workerPos.y - enemyTransform.pos.y, 0.0f};
+				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+				int closest = 0;
+				for (int i=1; i < workers.size();i++)
+				{
+					std::shared_ptr< Entity > worker = workers.at(i);
+					workerPos = worker->getComponent< CTransform3D >().pos;
+					direction.x = workerPos.x - enemyTransform.pos.x;
+					direction.y = workerPos.y - enemyTransform.pos.y;
+					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+					if ( distance < closestDistance )
+					{
+						closestDistance = distance;
+						closest = i;
+					}
+				}
+				std::shared_ptr< Entity > closestWorker = workers.at(closest);
+				closestDistance = std::sqrt(closestDistance);
+				CMove& enemyMove = enemy->getComponent< CMove >();
+				if ( closestDistance <= 30.0f  )
+				{
+					enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+					enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+					CHealth& workerHealth = closestWorker->getComponent< CHealth >();
+					workerHealth.hp -= 0.25f;
+				}
+				else if ( closestDistance <= 100.0f )
+				{
+					enemy->getComponent< CWorker >().state = WorkerState::WALK;
+					float moveSpeed = enemy->getComponent< CMove >().speed;
+					Vector3 closestPos = closestWorker->getComponent< CTransform3D >().pos;
+					direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
+					enemyMove.move.x = (direction.x / closestDistance) * moveSpeed;
+					enemyMove.move.y = (direction.y / closestDistance) * moveSpeed;
+				}
+			}
+		}
+		for (std::shared_ptr< Entity > worker : workers)
 		{
 			CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
 			CMove& workerMove = worker->getComponent< CMove >();
+			worker->getComponent< CWorker >().state = WorkerState::ROAM;
 			if ( damagedMonuments.size() )
 			{
 				Vector3 monumentPos = damagedMonuments.front()->getComponent< CTransform3D >().pos;
@@ -347,7 +434,6 @@ public:
 				std::shared_ptr< Entity > closestMonument = damagedMonuments.at(closest);
 				Vector3 closestPos = closestMonument->getComponent< CTransform3D >().pos;
 				closestDistance = std::sqrt(closestDistance);
-//				workerTransform.pos = closestPos;
 				if ( closestDistance <= 30.0f )
 				{
 					worker->getComponent< CWorker >().state = WorkerState::HEAL;
@@ -358,51 +444,67 @@ public:
 					{
 						monumentHealth.hp = monumentHealth.max;
 						CBuilding& monumentBuilding = closestMonument->getComponent< CBuilding >();
-						std::cout << static_cast<int>(monumentBuilding.state) << std::endl;
 						if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
 						{
 							monumentBuilding.state = BuildingState::BUILT;
-							// CTransform3D& closestMonumentTransform = closestMonument->getComponent< CTransform3D >();
-							// closestMonumentTransform.scale.x *=  3;
-							// closestMonumentTransform.scale.y *=  3;
-							// closestMonumentTransform.scale.z *=  3;
-//							UnloadModel(closestMonument->getComponent< CModel >().model);
-//							closestMonument->getComponent< CModel >().model = LoadModel("./assets/unit-tower.glb");
 						}
-						std::cout << static_cast<int>(monumentBuilding.state) << std::endl;
-						// TODO: load texture
-						// CTransform3D& closestMonumentTransform = closestMonument->getComponent< CTransform3D >();
-						// closestMonumentTransform.scale.x *=  3;
-						// closestMonumentTransform.scale.y *=  3;
-						// closestMonumentTransform.scale.z *=  3;
 					}
 				}
 				else
 				{
-//					float moveSpeed = 80.0f * (1.0f / 60.0f);
 					worker->getComponent< CWorker >().state = WorkerState::WALK;
 					float moveSpeed = worker->getComponent< CMove >().speed;
 					direction = (Vector3){closestPos.x - workerTransform.pos.x, closestPos.y - workerTransform.pos.y, 0.0f};
-//					workerTransform.pos.x += (direction.x / closestDistance) * moveSpeed;
-//					workerTransform.pos.y += (direction.y / closestDistance) * moveSpeed;
 					workerMove.move.x = (direction.x / closestDistance) * moveSpeed;
 					workerMove.move.y = (direction.y / closestDistance) * moveSpeed;
 				}
 			}
-			else
+			if ( worker->getComponent< CHealth >().hp < worker->getComponent< CHealth >().max )
 			{
-				worker->getComponent< CWorker >().state = WorkerState::ROAM;	
+				// run home
+				worker->getComponent< CWorker >().state = WorkerState::WALK;
+				Vector3 direction = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, 0.0f};
+				float moveSpeed = worker->getComponent< CMove >().speed;
+				float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+				if ( distance <= 30 ) // if home move sporidically
+				{
+					worker->getComponent< CWorker >().state = WorkerState::ROAM;
+				}
+				else
+				{
+					workerMove.move.x = (direction.x / distance) * moveSpeed;
+					workerMove.move.y = (direction.y / distance) * moveSpeed;
+				}
 			}
-			if ( workerTransform.pos.x + workerMove.move.x >= 509 || workerTransform.pos.x + workerMove.move.x <= -509 )
+		}
+		for (std::shared_ptr< Entity > entity : entities.getEntities())
+		{
+			// movement
+			CMove& movement = entity->getComponent< CMove >();
+			CTransform3D& transform = entity->getComponent< CTransform3D >();
+			if ( movement.owned )
 			{
-				workerMove.move.x *= -1;
+				if ( transform.pos.x + movement.move.x >= 509 || transform.pos.x + movement.move.x <= -509 )
+				{
+					movement.move.x *= -1;
+				}
+				transform.pos.x += movement.move.x;
+				if ( transform.pos.y +  movement.move.y >= 360.0f || transform.pos.y +  movement.move.y <= -360.0f )
+				{
+					movement.move.y *= -1;
+				}
+				transform.pos.y += movement.move.y;
 			}
-			workerTransform.pos.x += workerMove.move.x;
-			if ( workerTransform.pos.y +  workerMove.move.y >= 360.0f || workerTransform.pos.y +  workerMove.move.y <= -360.0f )
+			// death
+			CHealth& health = entity->getComponent< CHealth >();
+			if ( health.owned )
 			{
-				workerMove.move.y *= -1;
+				if ( health.hp < 0 )
+				{
+					entity->destroy();
+					// TODO: need stuff to happen when a monument or worker is destroyed
+				}
 			}
-			workerTransform.pos.y += workerMove.move.y;
 		}
 	}
 	virtual void render()

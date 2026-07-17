@@ -9,6 +9,7 @@
 enum class BuildingType {NONE=0, MONUMENT=1};
 enum class BuildingState {CONSTRUCTION=0, BUILT=1, ACTIVE=2};
 enum class WorkerState {ROAM=0, WALK=1, HEAL=2};
+enum class SpawnType {ENEMY=0, WORKER=1};
 const std::vector< float > BUILDINGCOSTS = {0.0f, 20.0f};
 
 class CInterface
@@ -104,9 +105,12 @@ public:
 class CSpawner : public CInterface
 {
 public:
-	CSpawner(size_t rate=0)
+	CSpawner(SpawnType type=SpawnType::ENEMY, size_t rate=0, size_t maxSpawns=5, size_t current=0)
 		: spawnRate(rate) {}
+	SpawnType spawn = SpawnType::ENEMY;
 	size_t spawnRate = 0;
+	size_t max = 5;
+	size_t current = 0;
 };
 	
 	typedef std::tuple< CTransform2D, CTransform3D, CModel, CHealth, CCost, CBuilding, CWorker, CMove, CSpawner, CTown > Components;

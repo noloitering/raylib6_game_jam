@@ -223,6 +223,59 @@ public:
 		return surrondingElems;
 	}
 	
+	void spawnEntities()
+	{
+		std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+		std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+		std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES)); // TODO: maybe not use this, instead use the max value of the spawner
+		for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
+		{
+			CSpawner& spawner = entity->getComponent< CSpawner >();
+			if ( spawner.owned )
+			{
+				if ( spawner.spawnRate > 0 && clock->getFrame() % spawner.spawnRate == 0 )
+				{
+					switch ( spawner.spawn )
+					{
+						case SpawnType::ENEMY:
+						{
+							if ( spawner.current < spawner.max )
+							{
+								std::shared_ptr< Entity > enemy = entities->entities.addEntity("Enemy", "Human");
+								enemy->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f}, Vector3{0.0f, 1.0f, 0.0f}, 180.0f);
+								enemy->addComponent< CWorker >();
+								enemy->addComponent< CHealth >(100.0f, 100.0f);
+								enemy->addComponent< CMove >(80.0f, entity->getComponent< CTransform3D >().pos);
+								CModel& modelComponent = enemy->addComponent< CModel >();
+								modelComponent.model = game->assets->get< Model >("enemy");
+								spawner.current++;
+							}
+						
+							break;
+						}
+						
+						case SpawnType::WORKER:
+						{
+							if ( resources->workers < resources->maxWorkers )
+							{
+								std::shared_ptr< Entity > worker = entities->entities.addEntity("Worker", "Goblin");
+								worker->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f});
+								worker->addComponent< CWorker >();
+								worker->addComponent< CHealth >(50.0f, 50.0f);
+								worker->addComponent< CMove >(80.0f, entity->getComponent< CTransform3D >().pos);
+								CModel& modelComponent = worker->addComponent< CModel >();
+								modelComponent.model = game->assets->get< Model >("worker");
+								resources->workers++;
+							}
+							
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	void placeMonument(std::shared_ptr< NoGUI::Element > tile)
 	{
 		std::shared_ptr< GameGrid > gui = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
@@ -293,25 +346,9 @@ public:
 		if ( state == GameState::RUNNING )
 		{
 			// spawning
-			for (std::shared_ptr< Entity > town : entities->entities.getEntities("Town"))
-			{
-				if ( town->getComponent< CSpawner >().spawnRate > 0 && clock->getFrame() % town->getComponent< CSpawner >().spawnRate == 0 )
-				{
-					if ( resources->workers < resources->maxWorkers )
-					{
-						std::shared_ptr< Entity > entity = entities->entities.addEntity("Worker", "Goblin");
-						entity->addComponent< CTransform3D >(town->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f});
-						entity->addComponent< CWorker >();
-						entity->addComponent< CHealth >(50.0f, 50.0f);
-						entity->addComponent< CMove >(80.0f, town->getComponent< CTransform3D >().pos);
-						CModel& modelComponent = entity->addComponent< CModel >();
-//						modelComponent.model = LoadModel("./assets/character-orc.glb");
-						modelComponent.model = game->assets->get< Model >("worker");
-						resources->workers += 1;
-					}
-				}
-			}
+			spawnEntities();
 			// TODO: use an event for this
+			// portal creation
 			for (std::shared_ptr< Entity > building : entities->entities.getEntities("Building"))
 			{
 				CBuilding& buildingComp = building->getComponent< CBuilding >();
@@ -375,11 +412,11 @@ public:
 					{
 						// convert Town cell into portal
 						CTransform3D& townTransform = town->getComponent< CTransform3D >();
-//						UnloadModel(town->getComponent< CModel >().model);
-//						town->getComponent< CModel >().model = LoadModel("./assets/magic_portal.glb");
 						town->getComponent< CModel >().model = game->assets->get< Model >("portal");
 						town->getComponent< CTransform3D >().scale = portalSize;
+						town->getComponent< CTransform3D >().angle = 180.0f;
 						town->getComponent< CSpawner >().spawnRate = 5 * 60;
+						town->getComponent< CSpawner >().spawn = SpawnType::WORKER;
 						town->getComponent< CTown >().owned = false;
 						townTile->setShape(grid->portalShape);
 						townTile->setInner("Portal");
@@ -400,18 +437,40 @@ public:
 					}
 				}
 			}
+			// movement
+			// TODO: probably could be handled in the entity system
 			for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Worker"))
 			{
 				if ( worker->getComponent< CWorker >().state == WorkerState::ROAM )
 				{
 					CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
 					CMove& workerMove = worker->getComponent< CMove >();
-					std::cout << "worker pos: " << workerTransform.pos.x << ", " << workerTransform.pos.y << std::endl;
-					std::cout << "worker home: " << workerMove.home.x << ", " << workerMove.home.y << std::endl;
 					Vector3 toHome = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, workerMove.home.z - workerTransform.pos.z};
 					float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
-					std::cout << "distance to home: " << distanceToHome << std::endl;
 					if ( distanceToHome > 150.0f )
+					{
+//						distanceToHome = std::sqrt(distanceToHome);
+						workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
+						workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+					}
+					else if ( clock->getFrame() % 60 == 0 )
+					{
+						int randomAngle = GetRandomValue(0, 360);
+						Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
+						workerMove.move.x = workerMove.speed * randomDir.x;
+						workerMove.move.y = workerMove.speed * randomDir.y;
+					}
+				}
+			}
+			for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Enemy"))
+			{
+				if ( worker->getComponent< CWorker >().state == WorkerState::ROAM )
+				{
+					CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
+					CMove& workerMove = worker->getComponent< CMove >();
+					Vector3 toHome = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, workerMove.home.z - workerTransform.pos.z};
+					float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
+					if ( distanceToHome > 50.0f )
 					{
 //						distanceToHome = std::sqrt(distanceToHome);
 						workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
@@ -428,6 +487,7 @@ public:
 			}
 //		if ( clock->getFrame() % 60 == 0 )
 //		{
+			// resources
 			resources->mana += resources->manaGen;
 			if ( resources->mana > resources->maxMana )
 			{
@@ -449,6 +509,7 @@ public:
 		std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
 		manaBar->slideTo(resources->mana);
 		noManaBar->slideTo(resources->mana);
+		// controls
 		if ( IsKeyPressed(KEY_P) )
 		{
 			switch (state)
@@ -480,7 +541,6 @@ public:
 		// {
 			// setVictory(false);
 		// }
-//		std::cout << "scene updated frame " << clock->getFrame() << std::endl;
 //		render();
 	}
 	
@@ -520,16 +580,13 @@ public:
 		{	
 			case NoGUI::FocusEvent::ONFOCUS:
 			{
-//				if ( TextIsEqual("Swamp", elem->getInner()) && building)
 				if ( TextIsEqual("Swamp", elem->getInner()) )
 				{
 					std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
-//					CCost& buildingCost = building->getComponent< CCost >();
 					float buildingCost = BUILDINGCOSTS[static_cast< int >(currentBuild)];
 					if ( resources->mana >= buildingCost )
 					{
 						resources->mana -= buildingCost;
-//						switch ( building->getComponent< CBuilding >().type )
 						std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 						switch (currentBuild)
 						{
@@ -541,19 +598,16 @@ public:
 						
 							case BuildingType::MONUMENT:
 							{	
-								std::cout << "building monument" << std::endl;
 								std::shared_ptr< Entity > building = entities->entities.addEntity("Building", "Monument");
 								building->addComponent< CBuilding >(BuildingType::MONUMENT);
 								building->addComponent< CCost >(buildingCost);
 								building->addComponent< CHealth >();
 								Vector3 elemPosition3D = convert2DPos3D(elem->position);
-								std::cout << "cells 2D size: " << elem->width() << ", " << elem->height() << std::endl;
 								float scaleFactorX = elem->width() * camera.position.y / 1000.0f;
 								float scaleFactorY = scaleFactorX - 3.0f;
 								float scaleFactorZ = scaleFactorY - 4.0f;
 								building->addComponent< CTransform3D >(elemPosition3D, Vector3{scaleFactorX, scaleFactorY, scaleFactorZ});
 								CModel& buildingModel = building->addComponent< CModel >();
-//								buildingModel.model = LoadModel("./assets/wood-structure.glb");
 								buildingModel.model = game->assets->get< Model >("construction");
 								int row = elem->getId() / CELLSX;
 								int column = elem->getId() % CELLSX;
@@ -562,7 +616,6 @@ public:
 								placeMonument(elem);
 								std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
 								tile->building = building;
-//								building = nullptr;
 							
 								break;
 							}
@@ -648,33 +701,33 @@ public:
 				char townTier = cell->getInner()[4];
 				if ( townTier == '0')
 				{
-//					buildingModel.model = LoadModel("./assets/building_home_A_yellow.gltf");
 					buildingModel.model = game->assets->get< Model >("town0");
 					scaleFactorX = cell->width() * camera.position.y / 500.0f;
 					angle = 180;
 					town->addComponent< CTown >(1);
+					town->addComponent< CSpawner >(SpawnType::ENEMY, 0, 0, 0);
 				}
 				else if ( townTier == '1' )
 				{
-//					buildingModel.model = LoadModel("./assets/building_home_B_yellow.gltf");
 					buildingModel.model = game->assets->get< Model >("town1");
 					scaleFactorX = cell->width() * camera.position.y / 600.0f;
 					angle = 180;
 					town->addComponent< CTown >(2);
+					town->addComponent< CSpawner >(SpawnType::ENEMY, 15 * 60, 2, 0);
 				}
 				else if ( townTier == '2' )
 				{
-//					buildingModel.model = LoadModel("./assets/building_barracks_yellow.gltf");
 					buildingModel.model = game->assets->get< Model >("town2");
 					scaleFactorX = cell->width() * camera.position.y / 1000.0f;
 					town->addComponent< CTown >(4);
+					town->addComponent< CSpawner >(SpawnType::ENEMY, 15 * 60, 5, 0);
 				}
 				else if ( townTier == '3' )
 				{
-//					buildingModel.model = LoadModel("./assets/building_castle_yellow.gltf");
 					buildingModel.model = game->assets->get< Model >("town3");
 					scaleFactorX = cell->width() * camera.position.y / 1100.0f;
 					town->addComponent< CTown >(6);
+					town->addComponent< CSpawner >(SpawnType::ENEMY, 10 * 60, 6, 0);
 				}
 				Vector3 elemPosition3D = convert2DPos3D(cell->position);
 				float scaleFactorY = scaleFactorX - 2.0f;

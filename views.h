@@ -260,7 +260,7 @@ public:
 		}
 		else
 		{
-			float alphaPercent = (float)framesRemain / endrframe;
+			float alphaPercent = (float)framesRemain / endFrame;
 			grid->convertingSwampFill->col = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 			grid->convertingSwampFill->hoverCol = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 			grid->convertingPortalFill->col = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};

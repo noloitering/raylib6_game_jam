@@ -28,7 +28,6 @@ class GameGrid : public NoGUI::Manager, public NoMVC::Model
 {
 public:
 	enum pageEnums {GRID=0};
-//	std::queue< std::pair< std::shared_ptr< NoGUI::Element >, size_t > > monumentInfluence;
 	// fills
 	std::shared_ptr< NoGUI::Fill > cellFill = std::make_shared< NoGUI::Fill >((Color){254, 254, 254, 1}, (Color){100, 100, 100, 100});
 	std::shared_ptr< NoGUI::Fill > swampFill = std::make_shared< NoGUI::Fill >(PURPLE, PINK);
@@ -148,49 +147,10 @@ public:
 			}
 		}
 	}
-	// void addResourcePage()
-	// {
-		// std::shared_ptr< NoGUI::Page > resourcePage = addPage(true);
-		// std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
-		// std::shared_ptr< NoGUI::CContainer > labelComponents = resourcePage->addComponents("Label");
-		// labelComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
-		// std::shared_ptr< NoGUI::nShape > labelShape = std::make_shared< NoGUI::nShape >(4, invis);
-		// Vector2 manaLabelRadius = (Vector2){50, 20};
-		// Vector2 manaLabelPos = (Vector2){720 - manaLabelRadius.x, 700 - manaLabelRadius.y * 2};
-		// NoGUI::Transform manaLabelTransform = NoGUI::Transform(manaLabelPos, manaLabelRadius, NoGUI::Align());
-		// resourcePage->addElement< NoGUI::Element >(labelShape, manaLabelTransform, "Label", "0");
-	// }
-	// void addActionTabsPage()
-	// {
-		// std::shared_ptr< NoGUI::Page > tabPage = addPage(true);
-		// std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
-		// std::shared_ptr< NoGUI::CContainer > tabComponents = tabPage->addComponents("Tab");
-		// tabComponents->addComponent< NoGUI::CText >(textFill, nullptr, 10.0f);
-		// Vector2 buildRadius = (Vector2){20.0f, 12.0f};
-		// Vector2 buildPos = (Vector2){720 - buildRadius.x * 3, buildRadius.y};
-		// NoGUI::Transform buildTransform = NoGUI::Transform(buildPos, buildRadius);
-		// tabPage->addElement< NoGUI::Button >(tabShape, buildTransform, "Tab", "Build");
-	// }
-	// void addBuildPage()
-	// {
-		// std::shared_ptr< NoGUI::Page > buildPage = addPage(false);
-		// std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
-		// std::shared_ptr< NoGUI::CContainer > buildingComponents = buildPage->addComponents("Building");
-		// buildingComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
-		// Vector2 containerRadius = (Vector2){100.0f, 360.0f};
-		// Vector2 buildingRadius = (Vector2){80.0f, 60.0f};
-		// Vector2 containerPos = (Vector2){720.0f - 100.0f, 360.0f};
-		// NoGUI::Transform containerTransform = NoGUI::Transform(containerPos, containerRadius);
-		// NoGUI::Transform buildingTransform = NoGUI::Transform((Vector2){containerPos.x, buildingRadius.y + 20.0f}, buildingRadius);
-		// buildPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
-		// buildPage->addElement< NoGUI::Button >(tabShape, buildingTransform, "Building", "Monument");
-	// }
+	
 	void initialize()
 	{
 		addGridPage();
-		// addResourcePage();
-		// addActionTabsPage();
-		// addBuildPage();
 	}
 };
 
@@ -515,7 +475,6 @@ public:
 			if ( transform.owned && model.owned )
 			{
 				DrawModelEx(*(entity->getComponent< CModel >().model.get()), transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
-//				DrawModelEx(model.model, transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
 			}
 		}
 	}

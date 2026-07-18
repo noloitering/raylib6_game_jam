@@ -356,7 +356,6 @@ public:
 					{
 						if ( buildingComp.state == BuildingState::BUILT )
 						{
-//							std::shared_ptr< NoGUI::Page > gridPage = gui->getPage(GameGrid::GRID);
 							building->getComponent< CModel >().model = game->assets->get< Model >("obelisk");
 							CTransform3D& buildingTransform = building->getComponent< CTransform3D >();
 							buildingTransform.scale.x *=  3;
@@ -392,7 +391,6 @@ public:
 					std::vector< std::shared_ptr< NoGUI::Element > > monumentCells;
 					Vector2 townPos = town->getComponent< CTransform2D >().pos;
 					std::shared_ptr< NoGUI::Element > townTile = gridPage->getElement(townPos.y * CELLSX + townPos.x);
-//					for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(townTile, 2))
 					std::vector< std::shared_ptr< NoGUI::Element > > surrondingCells = getSurrondingCells(townTile, 2);
 					for (int i=0; i < surrondingCells.size(); i++)
 					{
@@ -424,7 +422,6 @@ public:
 							std::shared_ptr< Tile > monumentCell = std::dynamic_pointer_cast< Tile >(monumentCells.at(i));
 							monumentCell->setShape(grid->swampShape);
 							// destroy monument entities
-//							UnloadModel(monumentCell->building->getComponent< CModel >().model);
 							monumentCell->building->destroy();
 							monumentCell->building = nullptr;
 						}
@@ -470,7 +467,6 @@ public:
 					float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
 					if ( distanceToHome > 50.0f )
 					{
-//						distanceToHome = std::sqrt(distanceToHome);
 						workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
 						workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
 					}

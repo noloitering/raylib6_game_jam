@@ -105,8 +105,8 @@ public:
 class CSpawner : public CInterface
 {
 public:
-	CSpawner(SpawnType type=SpawnType::ENEMY, size_t rate=0, size_t maxSpawns=5, size_t current=0)
-		: spawnRate(rate) {}
+	CSpawner(SpawnType type=SpawnType::ENEMY, size_t rate=0, size_t maxSpawns=5, size_t currentAmount=0)
+		: spawn(type), spawnRate(rate), max(maxSpawns), current(currentAmount) {}
 	SpawnType spawn = SpawnType::ENEMY;
 	size_t spawnRate = 0;
 	size_t max = 5;

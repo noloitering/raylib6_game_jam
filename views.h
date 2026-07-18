@@ -345,93 +345,6 @@ public:
 		{
 			// spawning
 			spawnEntities();
-			// TODO: use an event for this
-			// portal creation
-			for (std::shared_ptr< Entity > building : entities->entities.getEntities("Building"))
-			{
-				CBuilding& buildingComp = building->getComponent< CBuilding >();
-				switch ( buildingComp.type )
-				{
-					case BuildingType::MONUMENT:
-					{
-						if ( buildingComp.state == BuildingState::BUILT )
-						{
-							building->getComponent< CModel >().model = game->assets->get< Model >("obelisk");
-							CTransform3D& buildingTransform = building->getComponent< CTransform3D >();
-							buildingTransform.scale.x *=  3;
-							buildingTransform.scale.y *=  3;
-							buildingTransform.scale.z *=  3;
-							Vector2 monumentPos = building->getComponent< CTransform2D >().pos;
-							std::shared_ptr< NoGUI::Element > monumentTile = gridPage->getElement(monumentPos.y * CELLSX + monumentPos.x);
-							for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(monumentTile, 2))
-							{
-								if ( TextLength(cell->getInner()) == 0 )
-								{ 
-									cell->setInner("Swamp");
-									cell->setShape(grid->swampShape);
-								}
-							}
-							buildingComp.state = BuildingState::ACTIVE;
-						}
-					
-						break;
-					}
-				
-					default:
-					{
-					
-						break;
-					}
-				}
-			}
-			for (std::shared_ptr< Entity > town : entities->entities.getEntities("Town"))
-			{
-				if ( town->hasComponent< CTown >() )
-				{
-					std::vector< std::shared_ptr< NoGUI::Element > > monumentCells;
-					Vector2 townPos = town->getComponent< CTransform2D >().pos;
-					std::shared_ptr< NoGUI::Element > townTile = gridPage->getElement(townPos.y * CELLSX + townPos.x);
-					std::vector< std::shared_ptr< NoGUI::Element > > surrondingCells = getSurrondingCells(townTile, 2);
-					for (int i=0; i < surrondingCells.size(); i++)
-					{
-						std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(surrondingCells.at(i));
-						if ( cell->building )
-						{
-							CBuilding& cellBuilding = cell->building->getComponent< CBuilding >();
-							if ( cellBuilding.type == BuildingType::MONUMENT && cellBuilding.state != BuildingState::CONSTRUCTION )
-							{
-								monumentCells.push_back(cell);
-							}
-						}
-					}
-					if ( monumentCells.size() >= town->getComponent< CTown >().influence )
-					{
-						// convert Town cell into portal
-						CTransform3D& townTransform = town->getComponent< CTransform3D >();
-						town->getComponent< CModel >().model = game->assets->get< Model >("portal");
-						town->getComponent< CTransform3D >().scale = portalSize;
-						town->getComponent< CTransform3D >().angle = 180.0f;
-						town->getComponent< CSpawner >().spawnRate = 5 * 60;
-						town->getComponent< CSpawner >().spawn = SpawnType::WORKER;
-						town->getComponent< CTown >().owned = false;
-						townTile->setShape(grid->portalShape);
-						townTile->setInner("Portal");
-						resources->maxWorkers += 5;
-						for (int i=0; i < monumentCells.size(); i++)
-						{
-							std::shared_ptr< Tile > monumentCell = std::dynamic_pointer_cast< Tile >(monumentCells.at(i));
-							monumentCell->setShape(grid->swampShape);
-							// destroy monument entities
-							monumentCell->building->destroy();
-							monumentCell->building = nullptr;
-						}
-						if ( town->getComponent< CTown >().influence > 5 )
-						{
-							setVictory(true);
-						}
-					}
-				}
-			}
 			// movement
 			// TODO: probably could be handled in the entity system
 			for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Worker"))
@@ -732,6 +645,105 @@ public:
 						}
 					}
 					
+				}
+				
+				break;
+			}
+			
+			case EntityEvent::BUILD:
+			{
+				if ( entity->hasComponent< CBuilding >() )
+				{
+					CBuilding& entityBuild = entity->getComponent< CBuilding >();
+					switch ( entityBuild.type )
+					{
+						case BuildingType::MONUMENT:
+						{
+							// convert land
+							std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+							std::shared_ptr< NoGUI::Page > gridPage = grid->getPage(static_cast<int>(GameGrid::GRID));
+							entity->getComponent< CModel >().model = game->assets->get< Model >("obelisk");
+							CTransform3D& buildingTransform = entity->getComponent< CTransform3D >();
+							buildingTransform.scale.x *=  3;
+							buildingTransform.scale.y *=  3;
+							buildingTransform.scale.z *=  3;
+							Vector2 monumentPos = entity->getComponent< CTransform2D >().pos;
+							std::shared_ptr< NoGUI::Element > monumentTile = gridPage->getElement(monumentPos.y * CELLSX + monumentPos.x);
+							std::vector< std::shared_ptr< NoGUI::Element > > nearbyTowns;
+							for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(monumentTile, 2))
+							{
+								if ( TextLength(cell->getInner()) == 0 )
+								{ 
+									cell->setInner("Swamp");
+									cell->setShape(grid->swampShape);
+								}
+								else if ( cell->getShape() == grid->townShape )
+								{
+									nearbyTowns.push_back(cell);
+								}
+							}
+							entityBuild.state = BuildingState::ACTIVE;
+							// convert towns
+							for (int townIndex=0; townIndex < nearbyTowns.size(); townIndex++)
+							{
+								std::shared_ptr< Tile > townTile = dynamic_pointer_cast< Tile >(nearbyTowns.at(townIndex));
+								std::shared_ptr< Entity > town = townTile->building;
+								std::vector< std::shared_ptr< NoGUI::Element > > monumentCells;
+								std::vector< std::shared_ptr< NoGUI::Element > > surrondingCells = getSurrondingCells(townTile, 2);
+								for (int cellIndex=0; cellIndex < surrondingCells.size(); cellIndex++)
+								{
+									std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(surrondingCells.at(cellIndex));
+									if ( cell->building )
+									{
+										CBuilding& cellBuilding = cell->building->getComponent< CBuilding >();
+										if ( cellBuilding.type == BuildingType::MONUMENT && cellBuilding.state != BuildingState::CONSTRUCTION )
+										{
+											monumentCells.push_back(cell);
+										}
+									}
+								}
+								if ( town )
+								{
+									CTown& townComponent = town->getComponent< CTown >();
+									if ( townComponent.owned && monumentCells.size() >= townComponent.influence )
+									{
+										// place portal
+										std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+										CTransform3D& townTransform = town->getComponent< CTransform3D >();
+										town->getComponent< CModel >().model = game->assets->get< Model >("portal");
+										town->getComponent< CTransform3D >().scale = portalSize;
+										town->getComponent< CTransform3D >().angle = 180.0f;
+										town->getComponent< CSpawner >().spawnRate = 5 * 60;
+										town->getComponent< CSpawner >().spawn = SpawnType::WORKER;
+										town->getComponent< CTown >().owned = false;
+										townTile->setShape(grid->portalShape);
+										townTile->setInner("Portal");
+										resources->maxWorkers += 5;
+										for (int i=0; i < monumentCells.size(); i++)
+										{
+											std::shared_ptr< Tile > monumentCell = std::dynamic_pointer_cast< Tile >(monumentCells.at(i));
+											monumentCell->setShape(grid->swampShape);
+											// destroy monument entities
+											monumentCell->building->destroy();
+											monumentCell->building = nullptr;
+										}
+										if ( town->getComponent< CTown >().influence > 5 )
+										{
+											setVictory(true);
+										}
+									}
+								}
+							}
+					
+							break;
+						}
+				
+						default:
+						{
+				
+							break;
+						}
+					}
 				}
 				
 				break;

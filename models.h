@@ -406,7 +406,7 @@ public:
 						CBuilding& monumentBuilding = closestMonument->getComponent< CBuilding >();
 						if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
 						{
-							monumentBuilding.state = BuildingState::BUILT;
+							notify(closestMonument, EntityEvent::BUILD);
 						}
 					}
 				}
@@ -466,6 +466,7 @@ public:
 			}
 		}
 	}
+	
 	virtual void render()
 	{
 		for (std::shared_ptr< Entity > entity : entities.getEntities() )

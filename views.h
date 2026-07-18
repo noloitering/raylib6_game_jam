@@ -2,10 +2,8 @@
 #define GAME_SCENES_H
 #include "../../libs/NoMVC/src/Controller.h"
 #include "models.h"
-//#include "buildings.h"
-//#include "entity.h"
+#include <unordered_set>
 
-//const float PI = 3.14159f;
 const float CAMERAANGLE = 45.0f * (PI / 180.0f);
 enum class GameState {LOSS = 0, RUNNING = 1, PAUSED = 2, VICTORY = 3};
 
@@ -15,7 +13,7 @@ Vector3 convert2DPos3D(Vector2 position2D)
 	return (Vector3){(position2D.x - 360.0f) * std::sin(CAMERAANGLE) * -1, (position2D.y * -1 + 360.0f), 0.0f};
 }
 
-class Scene : public NoMVC::View, public NoGUI::Listener
+class Scene : public NoMVC::View, public NoGUI::Listener, public Listener
 {
 private:
 	GameState state = GameState::RUNNING;
@@ -365,7 +363,7 @@ public:
 							buildingTransform.scale.y *=  3;
 							buildingTransform.scale.z *=  3;
 							Vector2 monumentPos = building->getComponent< CTransform2D >().pos;
-							std::shared_ptr< NoGUI::Element > monumentTile = gridPage->getElement(monumentPos.x * CELLSX + monumentPos.y);
+							std::shared_ptr< NoGUI::Element > monumentTile = gridPage->getElement(monumentPos.y * CELLSX + monumentPos.x);
 							for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(monumentTile, 2))
 							{
 								if ( TextLength(cell->getInner()) == 0 )
@@ -393,7 +391,7 @@ public:
 				{
 					std::vector< std::shared_ptr< NoGUI::Element > > monumentCells;
 					Vector2 townPos = town->getComponent< CTransform2D >().pos;
-					std::shared_ptr< NoGUI::Element > townTile = gridPage->getElement(townPos.x * CELLSX + townPos.y);
+					std::shared_ptr< NoGUI::Element > townTile = gridPage->getElement(townPos.y * CELLSX + townPos.x);
 //					for (std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(townTile, 2))
 					std::vector< std::shared_ptr< NoGUI::Element > > surrondingCells = getSurrondingCells(townTile, 2);
 					for (int i=0; i < surrondingCells.size(); i++)
@@ -611,7 +609,7 @@ public:
 								buildingModel.model = game->assets->get< Model >("construction");
 								int row = elem->getId() / CELLSX;
 								int column = elem->getId() % CELLSX;
-								building->addComponent< CTransform2D >((Vector2){(float)row, (float)column});
+								building->addComponent< CTransform2D >((Vector2){(float)column, (float)row});
 								
 								placeMonument(elem);
 								std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
@@ -674,6 +672,77 @@ public:
 		}
 	}
 	
+	void onNotify(std::shared_ptr< Entity > entity, EntityEvent event)
+	{
+		switch (event)
+		{
+			case EntityEvent::DESTROY:
+			{
+				if ( TextIsEqual("Worker", entity->getTag()) )
+				{
+					std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+					resources->workers--;
+					entity->destroy();
+				}
+				else if ( TextIsEqual("Building", entity->getTag()) )
+				{
+					std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+					std::shared_ptr< NoGUI::Page > gridPage = grid->getPage(static_cast<int>(GameGrid::GRID));
+					// disable tile
+					std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(gridPage->getElements("Cell").at(entity->getComponent< CTransform2D >().pos.y * CELLSX + entity->getComponent< CTransform2D >().pos.x));
+					entity->destroy(); // building is no longer alive
+					tile->building = nullptr;
+					tile->setShape(grid->swampShape);
+					if ( entity->getComponent< CBuilding >().type == BuildingType::MONUMENT )
+					{
+						// disable surronding tiles
+						std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+						std::vector< std::shared_ptr< NoGUI::Element > > cellsToDisable = getSurrondingCells(tile, 2);
+						cellsToDisable.push_back(tile);
+						// find intersections
+						std::unordered_set< int > intersectingIndexes;
+						for (std::shared_ptr< Entity > building : entities->entities.getEntities("Building"))
+						{
+							if ( building->isAlive() && building->getComponent< CBuilding >().type == BuildingType::MONUMENT )
+							{
+								std::shared_ptr< Tile > monumentCell = dynamic_pointer_cast< Tile >(gridPage->getElements("Cell").at(building->getComponent< CTransform2D >().pos.y * CELLSX + building->getComponent< CTransform2D >().pos.x));
+								std::vector< std::shared_ptr< NoGUI::Element > > surrondingCells = getSurrondingCells(monumentCell, 2);
+								surrondingCells.push_back(monumentCell);
+								for (int i=0; i < cellsToDisable.size(); i++)
+								{
+									std::shared_ptr< NoGUI::Element > cellToDisable = cellsToDisable.at(i);
+									for (std::shared_ptr< NoGUI::Element > surrondingCell : surrondingCells)
+									{
+										if ( surrondingCell == cellToDisable )
+										{
+											intersectingIndexes.insert(i);
+										}
+									}
+								}
+							}
+						}
+						// disable cells that don't intersect
+						for (int i=0; i < cellsToDisable.size(); i++)
+						{
+							if ( intersectingIndexes.count(i) == 0 )
+							{
+								std::shared_ptr< NoGUI::Element > cellToDisable = cellsToDisable.at(i);
+								if ( TextIsEqual("Swamp", cellToDisable->getInner()) || TextLength(cellToDisable->getInner()) == 0 )
+								{
+									cellToDisable->setShape(grid->cellShape);
+									cellToDisable->setInner("");
+								}
+							}
+						}
+					}
+					
+				}
+				
+				break;
+			}
+		}
+	}
+	
 	void initialize()
 	{
 		std::shared_ptr< GameGrid > gui = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
@@ -694,7 +763,7 @@ public:
 				std::shared_ptr< Entity > town = entities->entities.addEntity("Town");
 				int row = cell->getId() / CELLSX;
 				int column = cell->getId() % CELLSX;
-				town->addComponent< CTransform2D >((Vector2){(float)row, (float)column});
+				town->addComponent< CTransform2D >((Vector2){(float)column, (float)row});
 				CModel& buildingModel = town->addComponent< CModel >();
 				float scaleFactorX;
 				float angle = 0;

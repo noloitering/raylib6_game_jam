@@ -27,6 +27,7 @@ int main()
 	std::shared_ptr< EntitySystem > entityModel = std::make_shared< EntitySystem >();
 	gridModel->addListener(scene);
 	GUIModel->addListener(scene);
+	entityModel->addListener(scene);
 	game.addModel(clockModel);
 	game.addModel(resourceModel);
 	game.addModel(gridModel);

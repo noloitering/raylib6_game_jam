@@ -299,7 +299,7 @@ public:
 	}
 };
 
-class EntitySystem : public NoMVC::Model
+class EntitySystem : public Notifier, public NoMVC::Model
 {
 public:
 	EntitySystem() {}
@@ -501,8 +501,7 @@ public:
 			{
 				if ( health.hp < 0 )
 				{
-					entity->destroy();
-					// TODO: need stuff to happen when a monument or worker is destroyed
+					notify(entity, EntityEvent::DESTROY);
 				}
 			}
 		}

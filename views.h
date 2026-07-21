@@ -13,6 +13,8 @@ class Scene : public NoMVC::View, public NoGUI::Listener, public Listener
 {
 private:
 	GameState state = GameState::RUNNING;
+	float unitSelectionProgress = 0.0f;
+	const unsigned int unitSelectionTime = 1200; // in milliseconds
 protected:
 	void setVictory(bool win);
 public:

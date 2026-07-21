@@ -9,7 +9,7 @@
 enum class BuildingType {NONE=0, MONUMENT=1};
 enum class BuildingState {CONSTRUCTION=0, BUILT=1, ACTIVE=2};
 enum class WorkerState {ROAM=0, WALK=1, HEAL=2};
-enum class SpawnType {ENEMY=0, WORKER=1};
+enum class SpawnType {NONE=0, WORKER=1, ENEMY=2, LYCANTHROPE=3, UNDEAD=4};
 const std::vector< float > BUILDINGCOSTS = {0.0f, 20.0f};
 
 class CInterface

@@ -157,7 +157,7 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, VICTORY=3};
+	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, UNITS=3, VICTORY=4};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
@@ -174,6 +174,7 @@ public:
 	std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
 	std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
 	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
+	std::shared_ptr< NoGUI::nShape > unitShape = std::make_shared< NoGUI::nShape >(4, invis, tabOutline);
 	std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
 	Overlay()
 		: NoGUI::Manager(false) {}
@@ -234,6 +235,28 @@ public:
 		buildPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
 		buildPage->addElement< NoGUI::Button >(tabShape, buildingTransform, "Building", "Monument");
 	}
+	void addUnitPage()
+	{
+		std::shared_ptr< NoGUI::Page > unitPage = addPage(false);
+		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+		std::shared_ptr< NoGUI::CContainer > unitComponents = unitPage->addComponents("Unit");
+		unitComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		std::shared_ptr< NoGUI::CContainer > labelComponents = unitPage->addComponents("Label");
+		labelComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		Vector2 containerRadius = (Vector2){180, 250};
+		Vector2 labelRadius = (Vector2){150, 30};
+		Vector2 unitRadius = (Vector2){100, 35};
+		NoGUI::Transform containerTransform = NoGUI::Transform((Vector2){360, 360}, containerRadius);
+		NoGUI::Transform labelTransform = NoGUI::Transform((Vector2){360, 360 - containerRadius.y + labelRadius.y}, labelRadius);
+		NoGUI::Transform lycanthropyTransform = NoGUI::Transform((Vector2){360, labelTransform.position.y + labelRadius.y + unitRadius.y}, unitRadius);
+		NoGUI::Transform undeathTransform = NoGUI::Transform((Vector2){360, lycanthropyTransform.position.y + labelRadius.y + unitRadius.y * 2}, unitRadius);
+		unitPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
+		unitPage->addElement< NoGUI::Element >(invisShape, labelTransform, "Label", "Choose Your Hex:");
+		std::shared_ptr< NoGUI::Slider > lycanthropySlider = unitPage->addElement< NoGUI::Slider >(unitShape, lycanthropyTransform, "Unit", "Lycanthropy");
+		std::shared_ptr< NoGUI::Slider > undeathSlider = unitPage->addElement< NoGUI::Slider >(unitShape, undeathTransform, "Unit", "Undeath");
+		lycanthropySlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
+		undeathSlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
+	}
 	void addVictoryPage()
 	{
 		std::shared_ptr< NoGUI::Page > victoryPage = addPage(false);
@@ -255,6 +278,7 @@ public:
 		addResourcePage();
 		addActionTabsPage();
 		addBuildPage();
+		addUnitPage();
 		addVictoryPage();
 	}
 };
@@ -271,6 +295,8 @@ public:
 		// state
 		std::vector< std::shared_ptr< Entity > > buildings = entities.getEntities("Building");
 		std::vector< std::shared_ptr< Entity > > workers = entities.getEntities("Worker");
+		std::vector< std::shared_ptr< Entity > > units = entities.getEntities("Unit");
+		std::vector< std::shared_ptr< Entity > > enemies = entities.getEntities("Enemy");
 		std::vector< std::shared_ptr< Entity > > damagedMonuments;
 		for ( std::shared_ptr< Entity > building : buildings )
 		{
@@ -283,7 +309,9 @@ public:
 				}
 			}
 		}
-		for ( std::shared_ptr< Entity > enemy : entities.getEntities("Enemy") )
+		// enemy movement
+		float closestEntityDistance;
+		for ( std::shared_ptr< Entity > enemy : enemies )
 		{
 			enemy->getComponent< CWorker >().state = WorkerState::ROAM;
 			if ( buildings.size() )
@@ -331,7 +359,7 @@ public:
 				Vector3 workerPos = workers.front()->getComponent< CTransform3D >().pos;
 				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
 				Vector3 direction = (Vector3){workerPos.x - enemyTransform.pos.x, workerPos.y - enemyTransform.pos.y, 0.0f};
-				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+				closestEntityDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
 				int closest = 0;
 				for (int i=1; i < workers.size();i++)
 				{
@@ -340,14 +368,14 @@ public:
 					direction.x = workerPos.x - enemyTransform.pos.x;
 					direction.y = workerPos.y - enemyTransform.pos.y;
 					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestDistance )
+					if ( distance < closestEntityDistance )
 					{
-						closestDistance = distance;
+						closestEntityDistance = distance;
 						closest = i;
 					}
 				}
 				std::shared_ptr< Entity > closestWorker = workers.at(closest);
-				closestDistance = std::sqrt(closestDistance);
+				float closestDistance = std::sqrt(closestEntityDistance);
 				CMove& enemyMove = enemy->getComponent< CMove >();
 				if ( closestDistance <= 30.0f  )
 				{
@@ -366,7 +394,47 @@ public:
 					enemyMove.move.y = (direction.y / closestDistance) * moveSpeed;
 				}
 			}
+			if ( units.size() )
+			{
+				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
+				int closest = -1;
+				for (int i=0; i < units.size();i++)
+				{
+					std::shared_ptr< Entity > unit = units.at(i);
+					Vector3 unitPos = unit->getComponent< CTransform3D >().pos;
+					Vector3 direction = {unitPos.x - enemyTransform.pos.x, unitPos.y - enemyTransform.pos.y, 0.0f};
+					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+					if ( distance < closestEntityDistance )
+					{
+						closestEntityDistance = distance;
+						closest = i;
+					}
+				}
+				if ( closest > -1 )
+				{
+					std::shared_ptr< Entity > closestUnit = units.at(closest);
+					closestEntityDistance = std::sqrt(closestEntityDistance);
+					CMove& enemyMove = enemy->getComponent< CMove >();
+					if ( closestEntityDistance <= 30.0f  )
+					{
+						enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+						enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+						CHealth& workerHealth = closestUnit->getComponent< CHealth >();
+						workerHealth.hp -= 0.25f;
+					}
+					else if ( closestEntityDistance <= 100.0f )
+					{
+						enemy->getComponent< CWorker >().state = WorkerState::WALK;
+						float moveSpeed = enemy->getComponent< CMove >().speed;
+						Vector3 closestPos = closestUnit->getComponent< CTransform3D >().pos;
+						Vector3 direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
+						enemyMove.move.x = (direction.x / closestEntityDistance) * moveSpeed;
+						enemyMove.move.y = (direction.y / closestEntityDistance) * moveSpeed;
+					}
+				}
+			}
 		}
+		// worker movement
 		for (std::shared_ptr< Entity > worker : workers)
 		{
 			CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
@@ -434,6 +502,51 @@ public:
 				{
 					workerMove.move.x = (direction.x / distance) * moveSpeed;
 					workerMove.move.y = (direction.y / distance) * moveSpeed;
+				}
+			}
+		}
+		// friendly unit movement
+		for (std::shared_ptr< Entity > unit : units)
+		{
+			unit->getComponent< CWorker >().state = WorkerState::ROAM;
+			if ( enemies.size() )
+			{
+				Vector3 enemyPos = enemies.front()->getComponent< CTransform3D >().pos;
+				CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
+				Vector3 direction = (Vector3){enemyPos.x - unitTransform.pos.x, enemyPos.y - unitTransform.pos.y, 0.0f};
+				closestEntityDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+				int closest = 0;
+				for (int i=1; i < enemies.size();i++)
+				{
+					std::shared_ptr< Entity > enemy = enemies.at(i);
+					enemyPos = enemy->getComponent< CTransform3D >().pos;
+					direction.x = enemyPos.x - unitTransform.pos.x;
+					direction.y = enemyPos.y - unitTransform.pos.y;
+					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
+					if ( distance < closestEntityDistance )
+					{
+						closestEntityDistance = distance;
+						closest = i;
+					}
+				}
+				std::shared_ptr< Entity > closestEnemy = enemies.at(closest);
+				float closestDistance = std::sqrt(closestEntityDistance);
+				CMove& unitMove = unit->getComponent< CMove >();
+				if ( closestDistance <= 30.0f  )
+				{
+					unit->getComponent< CWorker >().state = WorkerState::HEAL;
+					unitMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+					CHealth& enemyHealth = closestEnemy->getComponent< CHealth >();
+					enemyHealth.hp -= 0.25f;
+				}
+				else if ( closestDistance <= 100.0f )
+				{
+					unit->getComponent< CWorker >().state = WorkerState::WALK;
+					float moveSpeed = unit->getComponent< CMove >().speed;
+					Vector3 closestPos = closestEnemy->getComponent< CTransform3D >().pos;
+					direction = (Vector3){closestPos.x - unitTransform.pos.x, closestPos.y - unitTransform.pos.y, 0.0f};
+					unitMove.move.x = (direction.x / closestDistance) * moveSpeed;
+					unitMove.move.y = (direction.y / closestDistance) * moveSpeed;
 				}
 			}
 		}

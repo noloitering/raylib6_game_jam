@@ -50,31 +50,31 @@ void Scene::setVictory(bool win)
 std::vector< std::shared_ptr< NoGUI::Element > > Scene::getSurrondingCells(std::shared_ptr< NoGUI::Element > centerElem, unsigned int radius)
 {		
 	std::vector< std::shared_ptr< NoGUI::Element > > surrondingElems;
-	std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
-	std::shared_ptr< NoGUI::Page > grid = gui->getPage((size_t)GameGrid::GRID);
+	std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+	std::shared_ptr< NoGUI::Page > gridPage = grid->getPage((size_t)GameGrid::GRID);
 	size_t center = centerElem->getId();
 	int centerRow = center / (CELLSX + 1);
 	bool centerShifted = (centerRow + 1) % 2 == 0;
 	int minRow = (centerRow >= radius) ?  centerRow - radius : 0;
-	int maxRow = (center + (CELLSX + 1) * radius < grid->getElements().size() - 1) ? centerRow + radius : (grid->getElements().size() - 1) / (CELLSX + 1);
+	int maxRow = (center + (CELLSX + 1) * radius < gridPage->getElements().size() - 1) ? centerRow + radius : (gridPage->getElements().size() - 1) / (CELLSX + 1);
 	// get hexes around center
 	int index = center - (CELLSX + 1) * centerRow;
 	for (int i=1; i <= radius; i++)
 	{
 		if ( index - i >= 0 )
 		{
-			surrondingElems.push_back(grid->getElement(center - i));
+			surrondingElems.push_back(gridPage->getElement(center - i));
 		}
 		if ( index + i < (CELLSX + 1) )
 		{
-			surrondingElems.push_back(grid->getElement(center + i));
+			surrondingElems.push_back(gridPage->getElement(center + i));
 		}
 	}
 	// do rows above center
 	for (int rowInc=1; rowInc <= maxRow - centerRow; rowInc++)
 	{
 		int rowCenter = center + (CELLSX + 1) * rowInc;
-		surrondingElems.push_back(grid->getElement(rowCenter));
+		surrondingElems.push_back(gridPage->getElement(rowCenter));
 		int rowWidth = radius * 2 + 1 - rowInc;
 		int left = rowWidth / 2;
 		int right = rowWidth / 2;
@@ -93,14 +93,14 @@ std::vector< std::shared_ptr< NoGUI::Element > > Scene::getSurrondingCells(std::
 		{
 			if ( index - i >= 0 )
 			{
-				surrondingElems.push_back(grid->getElement(rowCenter - i));
+				surrondingElems.push_back(gridPage->getElement(rowCenter - i));
 			}
 		}
 		for (int i=1; i <= right; i++)
 		{
 			if ( index + i < (CELLSX + 1) )
 			{
-				surrondingElems.push_back(grid->getElement(rowCenter + i));
+				surrondingElems.push_back(gridPage->getElement(rowCenter + i));
 			}
 		}
 	}
@@ -108,7 +108,7 @@ std::vector< std::shared_ptr< NoGUI::Element > > Scene::getSurrondingCells(std::
 	for (int rowInc=1; rowInc <= centerRow - minRow; rowInc++)
 	{
 		int rowCenter = center - (CELLSX + 1) * rowInc;
-		surrondingElems.push_back(grid->getElement(rowCenter));
+		surrondingElems.push_back(gridPage->getElement(rowCenter));
 		int rowWidth = radius * 2 + 1 - rowInc;
 		int left = rowWidth / 2;
 		int right = rowWidth / 2;
@@ -127,14 +127,14 @@ std::vector< std::shared_ptr< NoGUI::Element > > Scene::getSurrondingCells(std::
 		{
 			if ( index - i >= 0 )
 			{
-				surrondingElems.push_back(grid->getElement(rowCenter - i));
+				surrondingElems.push_back(gridPage->getElement(rowCenter - i));
 			}
 		}
 		for (int i=1; i <= right; i++)
 		{
 			if ( index + i < (CELLSX + 1) )
 			{
-				surrondingElems.push_back(grid->getElement(rowCenter + i));
+				surrondingElems.push_back(gridPage->getElement(rowCenter + i));
 			}
 		}
 	}
@@ -156,6 +156,12 @@ void Scene::spawnEntities()
 			{
 				switch ( spawner.spawn )
 				{
+					case SpawnType::NONE:
+					{
+						
+						break;
+					}
+					
 					case SpawnType::ENEMY:
 					{
 						if ( spawner.current < spawner.max )
@@ -189,6 +195,30 @@ void Scene::spawnEntities()
 						
 						break;
 					}
+					
+					case SpawnType::LYCANTHROPE:
+					{
+						if ( spawner.current < spawner.max )
+						{
+							std::shared_ptr< Entity > unit = entities->entities.addEntity("Unit", "Werewolf");
+							unit->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{20.0f, 20.0f, 20.0f}, Vector3{0.0f, 1.0f, 0.0f}, 0.0f);
+							unit->addComponent< CWorker >();
+							unit->addComponent< CHealth >(100.0f, 100.0f);
+							unit->addComponent< CMove >(100.0f, entity->getComponent< CTransform3D >().pos);
+							CModel& modelComponent = unit->addComponent< CModel >();
+							modelComponent.model = game->assets->get< Model >("werewolf");
+							spawner.current++;
+						}
+						
+						break;
+					}
+					
+					case SpawnType::UNDEAD:
+					{
+						
+						break;
+					}
+					
 				}
 			}
 		}
@@ -224,12 +254,34 @@ void Scene::animateElements()
 		noManaBar->getShape()->fill->col.a = static_cast<unsigned char>(255 * (1 - alphaPercent));
 		noManaBar->getShape()->outline->fill->col.a = static_cast<unsigned char>(255 *  (1 - alphaPercent));
 	}
+	std::vector< std::shared_ptr< NoGUI::Element > > unitSelection = gui->getPage(Overlay::UNITS)->getElements("Unit");
+	bool hasFocus = false;
+	for (int i=0; i < unitSelection.size(); i++)
+	{
+		std::shared_ptr< NoGUI::Slider > unitSlider = dynamic_pointer_cast< NoGUI::Slider >(unitSelection[i]);
+		NoGUI::Transform unitSlideTransform = unitSlider->getSlideTransform();
+		if ( unitSlider->getFocus() == false )
+		{
+			if ( unitSlideTransform.radius.x > 0.0f )
+			{
+				unitSlider->slideTo(unitSlideTransform.radius.x * 2 - unitSlider->width() / 60.0f * 1000.0f / unitSelectionTime);
+			}
+		}
+		else
+		{
+			hasFocus = true;
+		}
+	}
+	if ( hasFocus == false && unitSelectionProgress > 0 )
+	{
+		unitSelectionProgress -= unitSelection.front()->width() / 60.0f * 1000.0f / unitSelectionTime;
+	}
 }
 
 void Scene::placeMonument(std::shared_ptr< Tile > tile)
 {
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-	std::shared_ptr< GameGrid > gui = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
 	// add building entity
 	std::shared_ptr< Entity > building = entities->entities.addEntity("Building", "Monument");
 	building->addComponent< CBuilding >(BuildingType::MONUMENT);
@@ -248,13 +300,13 @@ void Scene::placeMonument(std::shared_ptr< Tile > tile)
 	int column = tile->getId() % CELLSX;
 	building->addComponent< CTransform2D >((Vector2){(float)column, (float)row});
 	// modify tile
-	tile->setShape(gui->monumentShape);
+	tile->setShape(grid->monumentShape);
 	tile->building = building;
 	for ( std::shared_ptr< NoGUI::Element > cell : getSurrondingCells(tile, 2) )
 	{
 		if ( TextLength(cell->getInner()) == 0 )
 		{
-			cell->setShape(gui->convertingSwampShape);
+			cell->setShape(grid->convertingSwampShape);
 		}
 	}
 }
@@ -264,6 +316,7 @@ void Scene::placePortal(std::shared_ptr< Tile > tile)
 	std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 	std::shared_ptr< NoGUI::Page > gridPage = grid->getPage(GameGrid::GRID);
 	tile->setShape(grid->portalShape);
 	tile->setInner("Portal");
@@ -281,9 +334,14 @@ void Scene::placePortal(std::shared_ptr< Tile > tile)
 	tile->building->getComponent< CTransform3D >().scale = portalSize;
 	tile->building->getComponent< CTransform3D >().angle = 180.0f;
 	tile->building->getComponent< CSpawner >().spawnRate = 5 * 60;
-	tile->building->getComponent< CSpawner >().spawn = SpawnType::WORKER;
+	tile->building->getComponent< CSpawner >().spawn = SpawnType::NONE;
+	tile->building->getComponent< CSpawner >().max = 2;
+	tile->building->getComponent< CSpawner >().current = 0;
 	tile->building->getComponent< CTown >().owned = false;
 	resources->maxWorkers += 5;
+	std::cout << gui->getPages().size() << std::endl;
+	gui->getPage(Overlay::UNITS)->setEnabled(true);
+	gui->getPage(Overlay::UNITS)->getElements("Container").front()->setInner(TextFormat("%d", tile->building->getId()));	
 }
 
 std::vector< std::shared_ptr< NoGUI::Element > > Scene::buildMonument(std::shared_ptr< Tile > tile)
@@ -378,6 +436,29 @@ void Scene::run()
 				float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
 				if ( distanceToHome > 50.0f )
 				{
+					workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
+					workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+				}
+				else if ( clock->getFrame() % 60 == 0 )
+				{
+					int randomAngle = GetRandomValue(0, 360);
+					Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
+					workerMove.move.x = workerMove.speed * randomDir.x;
+					workerMove.move.y = workerMove.speed * randomDir.y;
+				}
+			}
+		}
+		for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Unit"))
+		{
+			if ( worker->getComponent< CWorker >().state == WorkerState::ROAM )
+			{
+				CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
+				CMove& workerMove = worker->getComponent< CMove >();
+				Vector3 toHome = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, workerMove.home.z - workerTransform.pos.z};
+				float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
+				if ( distanceToHome > 150.0f )
+				{
+//					distanceToHome = std::sqrt(distanceToHome);
 					workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
 					workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
 				}
@@ -516,12 +597,43 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					game->sfx->play(game->assets->get< Sound >("nomana.wav"));
 				}
 			}
+			else if ( TextIsEqual("Unit", elem->getTag()) )
+			{
+				unitSelectionProgress = 0.0f;
+			}
 				
 			break;
 		}
 			
 		case NoGUI::FocusEvent::FOCUSING:
 		{
+			if ( TextIsEqual("Unit", elem->getTag()) )
+			{
+				std::shared_ptr< NoGUI::Slider > unitSlider = dynamic_pointer_cast< NoGUI::Slider >(elem);
+				NoGUI::Transform selectionTransform = unitSlider->getSlideTransform();
+				if ( unitSelectionProgress < unitSlider->width() )
+				{
+					unitSlider->slideTo(unitSelectionProgress);
+					unitSelectionProgress += unitSlider->width() / 60.0f * 1000.0f / unitSelectionTime;
+				}
+				else
+				{
+					std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
+					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+					unitSelectionProgress = 0.0f;
+					gui->getPage(Overlay::UNITS)->setEnabled(false);
+					grid->getPage(GameGrid::GRID)->setActive(true);
+					int portalID = TextToInteger(gui->getPage(Overlay::UNITS)->getElements("Container").front()->getInner());
+					for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
+					{
+						if ( entity->getId() == portalID )
+						{
+							entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
+						}
+					}
+				}
+			}
 			
 			break;
 		}
@@ -565,6 +677,20 @@ void Scene::onNotify(std::shared_ptr< Entity > entity, EntityEvent event)
 			{
 				std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
 				resources->workers--;
+				entity->destroy();
+			}
+			else if ( entity->hasComponent< CWorker >() )
+			{
+				std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+				CMove& entityMove = entity->getComponent< CMove >();
+				for (std::shared_ptr< Entity > town : entities->entities.getEntities("Town"))
+				{
+					CTransform3D& townTransform = town->getComponent< CTransform3D >();
+					if ( townTransform.pos.x == entityMove.home.x && townTransform.pos.y == entityMove.home.y )
+					{
+						town->getComponent< CSpawner >().current--;
+					}
+				}
 				entity->destroy();
 			}
 			else if ( TextIsEqual("Building", entity->getTag()) )
@@ -697,8 +823,8 @@ void Scene::onNotify(std::shared_ptr< Entity > entity, EntityEvent event)
 
 void Scene::initialize()
 {
-	std::shared_ptr< GameGrid > gui = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
-	gui->update();
+	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+	grid->update();
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 	std::shared_ptr< Entity > entity = entities->entities.addEntity("Worker", "Goblin");
 	entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
@@ -707,10 +833,10 @@ void Scene::initialize()
 	entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
 	CModel& modelComponent = entity->addComponent< CModel >();
 	modelComponent.model = game->assets->get< Model >("worker");
-	for(int i=0; i < gui->getPage(GameGrid::GRID)->getElements().size(); i++)
+	for(int i=0; i < grid->getPage(GameGrid::GRID)->getElements().size(); i++)
 	{
-		std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(gui->getPage(GameGrid::GRID)->getElements()[i]);
-		if ( cell->getShape() == gui->townShape )
+		std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(grid->getPage(GameGrid::GRID)->getElements()[i]);
+		if ( cell->getShape() == grid->townShape )
 		{
 			std::shared_ptr< Entity > town = entities->entities.addEntity("Town");
 			int row = cell->getId() / CELLSX;

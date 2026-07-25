@@ -3,10 +3,8 @@
 
 #include <unordered_map>
 #include <vector>
-#include <iostream>
 #include "component.h"
 #include "../../libs/NoGUI/src/Core.h"
-//#include "../../libs/NoMVC/src/Model.h"
 
 class Entity : public CContainer, public NoMAD::GameObj
 {
@@ -92,5 +90,7 @@ public:
 		return listeners;
 	}
 };
+
+std::pair< std::shared_ptr< Entity >, float > getClosestEntity3D(const Vector3& point, std::vector< std::shared_ptr< Entity > > entities);
 
 #endif

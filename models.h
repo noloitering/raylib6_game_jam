@@ -4,8 +4,6 @@
 #include "../../libs/NoGUI/src/GUI.h"
 #include "../../libs/NoMVC/src/Model.h"
 #include "entity.h"
-#include <queue>
-#include <utility>
 
 const float SQRT3 = sqrt(3.0f);
 const unsigned int CELLSX = 15;
@@ -310,128 +308,45 @@ public:
 			}
 		}
 		// enemy movement
-		float closestEntityDistance;
 		for ( std::shared_ptr< Entity > enemy : enemies )
 		{
-			enemy->getComponent< CWorker >().state = WorkerState::ROAM;
-			if ( buildings.size() )
+			CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
+			CMove& enemyMove = enemy->getComponent< CMove >();
+			auto [closestEntity, closestEntityDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, buildings);
+			auto [closestWorker, closestWorkerDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, workers);
+			auto [closestUnit, closestUnitDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, units);
+			float meleeDistance = 30.0f;
+			float detectionDistance = 100.0f;
+			if ( closestWorkerDistance <= detectionDistance || closestUnitDistance <= detectionDistance )
 			{
-				Vector3 buildingPos = buildings.front()->getComponent< CTransform3D >().pos;
-				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
-				Vector3 direction = (Vector3){buildingPos.x - enemyTransform.pos.x, buildingPos.y - enemyTransform.pos.y, 0.0f};
-				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-				int closest = 0;
-				for (int i=1; i < buildings.size();i++)
+				if ( closestUnitDistance <= closestWorkerDistance )
 				{
-					std::shared_ptr< Entity > building = buildings.at(i);
-					buildingPos = building->getComponent< CTransform3D >().pos;
-					direction.x = buildingPos.x - enemyTransform.pos.x;
-					direction.y = buildingPos.y - enemyTransform.pos.y;
-					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestDistance )
-					{
-						closestDistance = distance;
-						closest = i;
-					}
+					closestEntityDistance = closestUnitDistance;
+					closestEntity = closestUnit;
 				}
-				std::shared_ptr< Entity > closestBuilding = buildings.at(closest);
-				closestDistance = std::sqrt(closestDistance);
-				CMove& enemyMove = enemy->getComponent< CMove >();
-				if ( closestDistance <= 30.0f  )
+				else
 				{
-					enemy->getComponent< CWorker >().state = WorkerState::HEAL;
-					enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
-					CHealth& buildingHealth = closestBuilding->getComponent< CHealth >();
-					buildingHealth.hp -= 0.25f;
-				}
-				else if ( closestDistance <= 100.0f )
-				{
-					enemy->getComponent< CWorker >().state = WorkerState::WALK;
-					float moveSpeed = enemy->getComponent< CMove >().speed;
-					Vector3 closestPos = closestBuilding->getComponent< CTransform3D >().pos;
-					direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
-					enemyMove.move.x = (direction.x / closestDistance) * moveSpeed;
-					enemyMove.move.y = (direction.y / closestDistance) * moveSpeed;
+					closestEntityDistance = closestWorkerDistance;
+					closestEntity = closestWorker;
 				}
 			}
-			if ( workers.size() )
+			if ( closestEntityDistance <= meleeDistance )
 			{
-				Vector3 workerPos = workers.front()->getComponent< CTransform3D >().pos;
-				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
-				Vector3 direction = (Vector3){workerPos.x - enemyTransform.pos.x, workerPos.y - enemyTransform.pos.y, 0.0f};
-				closestEntityDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-				int closest = 0;
-				for (int i=1; i < workers.size();i++)
-				{
-					std::shared_ptr< Entity > worker = workers.at(i);
-					workerPos = worker->getComponent< CTransform3D >().pos;
-					direction.x = workerPos.x - enemyTransform.pos.x;
-					direction.y = workerPos.y - enemyTransform.pos.y;
-					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestEntityDistance )
-					{
-						closestEntityDistance = distance;
-						closest = i;
-					}
-				}
-				std::shared_ptr< Entity > closestWorker = workers.at(closest);
-				float closestDistance = std::sqrt(closestEntityDistance);
-				CMove& enemyMove = enemy->getComponent< CMove >();
-				if ( closestDistance <= 30.0f  )
-				{
-					enemy->getComponent< CWorker >().state = WorkerState::HEAL;
-					enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
-					CHealth& workerHealth = closestWorker->getComponent< CHealth >();
-					workerHealth.hp -= 0.25f;
-				}
-				else if ( closestDistance <= 100.0f )
-				{
-					enemy->getComponent< CWorker >().state = WorkerState::WALK;
-					float moveSpeed = enemy->getComponent< CMove >().speed;
-					Vector3 closestPos = closestWorker->getComponent< CTransform3D >().pos;
-					direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
-					enemyMove.move.x = (direction.x / closestDistance) * moveSpeed;
-					enemyMove.move.y = (direction.y / closestDistance) * moveSpeed;
-				}
+				enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+				enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+				closestEntity->getComponent< CHealth >().hp -= 0.25f;
 			}
-			if ( units.size() )
+			else if ( closestEntityDistance <= detectionDistance )
 			{
-				CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
-				int closest = -1;
-				for (int i=0; i < units.size();i++)
-				{
-					std::shared_ptr< Entity > unit = units.at(i);
-					Vector3 unitPos = unit->getComponent< CTransform3D >().pos;
-					Vector3 direction = {unitPos.x - enemyTransform.pos.x, unitPos.y - enemyTransform.pos.y, 0.0f};
-					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestEntityDistance )
-					{
-						closestEntityDistance = distance;
-						closest = i;
-					}
-				}
-				if ( closest > -1 )
-				{
-					std::shared_ptr< Entity > closestUnit = units.at(closest);
-					closestEntityDistance = std::sqrt(closestEntityDistance);
-					CMove& enemyMove = enemy->getComponent< CMove >();
-					if ( closestEntityDistance <= 30.0f  )
-					{
-						enemy->getComponent< CWorker >().state = WorkerState::HEAL;
-						enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
-						CHealth& workerHealth = closestUnit->getComponent< CHealth >();
-						workerHealth.hp -= 0.25f;
-					}
-					else if ( closestEntityDistance <= 100.0f )
-					{
-						enemy->getComponent< CWorker >().state = WorkerState::WALK;
-						float moveSpeed = enemy->getComponent< CMove >().speed;
-						Vector3 closestPos = closestUnit->getComponent< CTransform3D >().pos;
-						Vector3 direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
-						enemyMove.move.x = (direction.x / closestEntityDistance) * moveSpeed;
-						enemyMove.move.y = (direction.y / closestEntityDistance) * moveSpeed;
-					}
-				}
+				enemy->getComponent< CWorker >().state = WorkerState::WALK;
+				Vector3 closestPos = closestEntity->getComponent< CTransform3D >().pos;
+				Vector3 direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
+				enemyMove.move.x = direction.x / closestEntityDistance * enemyMove.speed;
+				enemyMove.move.y = direction.y / closestEntityDistance * enemyMove.speed;
+			}
+			else
+			{
+				enemy->getComponent< CWorker >().state = WorkerState::ROAM;
 			}
 		}
 		// worker movement
@@ -439,30 +354,14 @@ public:
 		{
 			CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
 			CMove& workerMove = worker->getComponent< CMove >();
+			CHealth& workerHealth = worker->getComponent< CHealth >();
+			bool isFullHealth = workerHealth.hp >= workerHealth.max;
+			float maxProximity = 30.0f;
 			worker->getComponent< CWorker >().state = WorkerState::ROAM;
-			if ( damagedMonuments.size() )
+			if ( isFullHealth && damagedMonuments.size() )
 			{
-				Vector3 monumentPos = damagedMonuments.front()->getComponent< CTransform3D >().pos;
-				Vector3 direction = (Vector3){monumentPos.x - workerTransform.pos.x, monumentPos.y - workerTransform.pos.y, 0.0f};
-				float closestDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-				int closest = 0;
-				for (int i=1; i < damagedMonuments.size();i++)
-				{
-					std::shared_ptr< Entity > damagedMonument = damagedMonuments.at(i);
-					Vector3 damagedMonumentPos = damagedMonument->getComponent< CTransform3D >().pos;
-					direction.x = damagedMonumentPos.x - workerTransform.pos.x;
-					direction.y = damagedMonumentPos.y - workerTransform.pos.y;
-					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestDistance )
-					{
-						closestDistance = distance;
-						closest = i;
-					}
-				}
-				std::shared_ptr< Entity > closestMonument = damagedMonuments.at(closest);
-				Vector3 closestPos = closestMonument->getComponent< CTransform3D >().pos;
-				closestDistance = std::sqrt(closestDistance);
-				if ( closestDistance <= 30.0f )
+				auto [closestMonument, closestMonumentDistance] = getClosestEntity3D(workerTransform.pos, damagedMonuments);
+				if ( closestMonumentDistance < maxProximity )
 				{
 					worker->getComponent< CWorker >().state = WorkerState::HEAL;
 					workerMove.move = (Vector3){0.0f, 0.0f, 0.0f};
@@ -481,73 +380,53 @@ public:
 				else
 				{
 					worker->getComponent< CWorker >().state = WorkerState::WALK;
-					float moveSpeed = worker->getComponent< CMove >().speed;
-					direction = (Vector3){closestPos.x - workerTransform.pos.x, closestPos.y - workerTransform.pos.y, 0.0f};
-					workerMove.move.x = (direction.x / closestDistance) * moveSpeed;
-					workerMove.move.y = (direction.y / closestDistance) * moveSpeed;
+					Vector3 closestPos = closestMonument->getComponent< CTransform3D >().pos;
+					Vector3 direction = (Vector3){closestPos.x - workerTransform.pos.x, closestPos.y - workerTransform.pos.y, 0.0f};
+					workerMove.move.x = (direction.x / closestMonumentDistance) * workerMove.speed;
+					workerMove.move.y = (direction.y / closestMonumentDistance) * workerMove.speed;
 				}
 			}
-			if ( worker->getComponent< CHealth >().hp < worker->getComponent< CHealth >().max )
+			else
 			{
-				// run home
-				worker->getComponent< CWorker >().state = WorkerState::WALK;
-				Vector3 direction = (Vector3){workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, 0.0f};
-				float moveSpeed = worker->getComponent< CMove >().speed;
-				float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-				if ( distance <= 30 ) // if home move sporidically
+				Vector3 direction = (Vector3) {workerMove.home.x - workerTransform.pos.x, workerMove.home.y - workerTransform.pos.y, 0.0f};
+				float distance = direction.x * direction.x + direction.y * direction.y;
+				if ( distance > maxProximity * maxProximity )
 				{
-					worker->getComponent< CWorker >().state = WorkerState::ROAM;
-				}
-				else
-				{
-					workerMove.move.x = (direction.x / distance) * moveSpeed;
-					workerMove.move.y = (direction.y / distance) * moveSpeed;
+					distance = std::sqrt(distance);
+					worker->getComponent< CWorker >().state = WorkerState::WALK;
+					workerMove.move.x = (direction.x / distance) * workerMove.speed;
+					workerMove.move.y = (direction.y / distance) * workerMove.speed;
 				}
 			}
 		}
 		// friendly unit movement
 		for (std::shared_ptr< Entity > unit : units)
 		{
-			unit->getComponent< CWorker >().state = WorkerState::ROAM;
-			if ( enemies.size() )
+			CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
+			CMove& unitMove = unit->getComponent< CMove >();
+			float detectionDistance = 100.0f;
+			float meleeDistance = 30.0f;
+			auto [closestEnemy, closestEnemyDistance] = getClosestEntity3D(unit->getComponent< CTransform3D >().pos, enemies);
+			if ( closestEnemyDistance <= detectionDistance )
 			{
-				Vector3 enemyPos = enemies.front()->getComponent< CTransform3D >().pos;
-				CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
-				Vector3 direction = (Vector3){enemyPos.x - unitTransform.pos.x, enemyPos.y - unitTransform.pos.y, 0.0f};
-				closestEntityDistance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-				int closest = 0;
-				for (int i=1; i < enemies.size();i++)
-				{
-					std::shared_ptr< Entity > enemy = enemies.at(i);
-					enemyPos = enemy->getComponent< CTransform3D >().pos;
-					direction.x = enemyPos.x - unitTransform.pos.x;
-					direction.y = enemyPos.y - unitTransform.pos.y;
-					float distance = (direction.x) * (direction.x) + (direction.y) * (direction.y);
-					if ( distance < closestEntityDistance )
-					{
-						closestEntityDistance = distance;
-						closest = i;
-					}
-				}
-				std::shared_ptr< Entity > closestEnemy = enemies.at(closest);
-				float closestDistance = std::sqrt(closestEntityDistance);
-				CMove& unitMove = unit->getComponent< CMove >();
-				if ( closestDistance <= 30.0f  )
+				if ( closestEnemyDistance <= meleeDistance )
 				{
 					unit->getComponent< CWorker >().state = WorkerState::HEAL;
 					unitMove.move = (Vector3){0.0f, 0.0f, 0.0f};
-					CHealth& enemyHealth = closestEnemy->getComponent< CHealth >();
-					enemyHealth.hp -= 0.25f;
+					closestEnemy->getComponent< CHealth >().hp -= 0.25f;
 				}
-				else if ( closestDistance <= 100.0f )
+				else
 				{
 					unit->getComponent< CWorker >().state = WorkerState::WALK;
-					float moveSpeed = unit->getComponent< CMove >().speed;
 					Vector3 closestPos = closestEnemy->getComponent< CTransform3D >().pos;
-					direction = (Vector3){closestPos.x - unitTransform.pos.x, closestPos.y - unitTransform.pos.y, 0.0f};
-					unitMove.move.x = (direction.x / closestDistance) * moveSpeed;
-					unitMove.move.y = (direction.y / closestDistance) * moveSpeed;
+					Vector3 direction = (Vector3){closestPos.x - unitTransform.pos.x, closestPos.y - unitTransform.pos.y, 0.0f};
+					unitMove.move.x = direction.x / closestEnemyDistance * unitMove.speed;
+					unitMove.move.y = direction.y / closestEnemyDistance * unitMove.speed;
 				}
+			}
+			else
+			{
+				unit->getComponent< CWorker >().state = WorkerState::ROAM;
 			}
 		}
 		for (std::shared_ptr< Entity > entity : entities.getEntities())

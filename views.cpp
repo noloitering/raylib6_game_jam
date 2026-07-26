@@ -481,11 +481,7 @@ void Scene::run()
 		}
 		if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
 		{
-			currentBuild = BuildingType::NONE;
-		}
-		if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
-		{
-			currentBuild = BuildingType::NONE;
+			currentAction.action = 0;
 		}
 	}
 //	}
@@ -562,28 +558,93 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 	{	
 		case NoGUI::FocusEvent::ONFOCUS:
 		{
-			if ( TextIsEqual("Swamp", elem->getInner()) )
+			if ( TextIsEqual("Cell", elem->getTag()) )
 			{
 				std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
-				float buildingCost = BUILDINGCOSTS[static_cast< int >(currentBuild)];
-				if ( resources->mana >= buildingCost )
+				float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
+				if ( resources->mana >= manaCost )
 				{
-					resources->mana -= buildingCost;
-					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-					switch (currentBuild)
+					if ( currentAction.cast )
 					{
-						case BuildingType::NONE:
+						resources->mana -= manaCost;
+						switch ( currentAction.action )
 						{
-						
-							break;
+							case static_cast<int>(SpellType::COMMAND):
+							{
+								std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+								Vector3 mousePos = convert2DPos3D(GetMousePosition());
+								for (std::shared_ptr< Entity > unit : entities->entities.getEntities("Unit"))
+								{
+									unit->getComponent< CWorker >().state = WorkerState::WALK;
+									CMove& unitMove = unit->getComponent< CMove >();
+									Vector3 unitPos = unit->getComponent< CTransform3D >().pos;
+									Vector3 direction = (Vector3){mousePos.x - unitPos.x, mousePos.y - unitPos.y, 0.0f};
+									float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+									unitMove.move.x = direction.x / distance * unitMove.speed;
+									unitMove.move.y = direction.y / distance * unitMove.speed;
+								}
+								
+								break;
+							}
+							
+							case static_cast<int>(SpellType::HEAL):
+							{
+								std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+								Vector3 mousePos = convert2DPos3D(GetMousePosition());
+								// get all entities within a certain radius of a point
+								float healRadius = 100.0f;
+								float healAmount = 20.0f;
+								std::vector< std::shared_ptr< Entity > > units = entities->entities.getEntities("Unit");
+								std::vector< std::shared_ptr< Entity > > workers = entities->entities.getEntities("Worker");
+								for (const std::vector< std::shared_ptr< Entity > >& friendlyVector : {units, workers})
+								{
+									for (std::shared_ptr< Entity > friendly : friendlyVector)
+									{
+										Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
+										Vector3 direction = (Vector3){mousePos.x - friendlyPos.x, mousePos.y - friendlyPos.y, 0.0f};
+										float distance = direction.x * direction.x + direction.y * direction.y;
+										std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
+										if ( distance <= healRadius * healRadius )
+										{
+											std::cout << "healing " << friendly->getTag() << std::endl;
+											CHealth& friendlyHealth = friendly->getComponent< CHealth >();
+											friendlyHealth.hp += healAmount;
+											if ( friendlyHealth.hp > friendlyHealth.max )
+											{
+												friendlyHealth.hp = friendlyHealth.max;
+											}
+										}
+									}
+								}
+								
+								break;
+							}
+							
+							default:
+							{
+								
+								break;
+							}
 						}
-						
-						case BuildingType::MONUMENT:
-						{									
-							std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
-							placeMonument(tile);
-						
-							break;
+					}
+					else if ( TextIsEqual("Swamp", elem->getInner()) )
+					{
+						resources->mana -= manaCost;
+						switch ( currentAction.action )
+						{
+							case static_cast<int>(BuildingType::MONUMENT): // hate this fucking syntax try to give actions their own namespace and got duplicate of NONE error KMS
+							{
+								std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
+								placeMonument(tile);
+								
+								break;
+							}
+							
+							default:
+							{
+								
+								break;
+							}
 						}
 					}
 				}
@@ -646,14 +707,37 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				gui->getPage(Overlay::TABS)->setActive(false);
 				gui->getPage(Overlay::BUILDINGS)->setEnabled(true);
 			}
+			else if ( TextIsEqual("Spells", elem->getInner()) )
+			{
+				std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
+				gui->getPage(Overlay::TABS)->setActive(false);
+				gui->getPage(Overlay::SPELLS)->setEnabled(true);
+			}
 			else if ( TextIsEqual("Building", elem->getTag()) )
 			{
 				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 				gui->getPage(Overlay::BUILDINGS)->setEnabled(false);
 				if ( TextIsEqual("Monument", elem->getInner()) )
 				{
-					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-					currentBuild = BuildingType::MONUMENT;
+					currentAction.action = static_cast<int>(BuildingType::MONUMENT);
+					currentAction.cast = false;
+					gui->getPage(Overlay::TABS)->setActive(true);
+				}
+			}
+			else if ( TextIsEqual("Spell", elem->getTag()) )
+			{
+				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+				gui->getPage(Overlay::SPELLS)->setEnabled(false);
+				if ( TextIsEqual("Command", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::COMMAND);
+					currentAction.cast = true;
+					gui->getPage(Overlay::TABS)->setActive(true);
+				}
+				else if ( TextIsEqual("Heal", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::HEAL);
+					currentAction.cast = true;
 					gui->getPage(Overlay::TABS)->setActive(true);
 				}
 			}

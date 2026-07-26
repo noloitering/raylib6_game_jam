@@ -155,7 +155,7 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, UNITS=3, VICTORY=4};
+	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, SPELLS=3, UNITS=4, VICTORY=5};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
@@ -214,10 +214,13 @@ public:
 		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
 		std::shared_ptr< NoGUI::CContainer > tabComponents = tabPage->addComponents("Tab");
 		tabComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
-		Vector2 buildRadius = (Vector2){35.0f, 20.0f};
-		Vector2 buildPos = (Vector2){720 - buildRadius.x * 3, buildRadius.y};
-		NoGUI::Transform buildTransform = NoGUI::Transform(buildPos, buildRadius);
+		Vector2 tabRadius = (Vector2){35.0f, 20.0f};
+		Vector2 buildPos = (Vector2){720 - tabRadius.x * 3, tabRadius.y};
+		Vector2 spellPos = (Vector2){720 - tabRadius.x, tabRadius.y};
+		NoGUI::Transform buildTransform = NoGUI::Transform(buildPos, tabRadius);
+		NoGUI::Transform spellTransform = NoGUI::Transform(spellPos, tabRadius);
 		tabPage->addElement< NoGUI::Button >(tabShape, buildTransform, "Tab", "Build");
+		tabPage->addElement< NoGUI::Button >(tabShape, spellTransform, "Tab", "Spells");
 	}
 	void addBuildPage()
 	{
@@ -232,6 +235,22 @@ public:
 		NoGUI::Transform buildingTransform = NoGUI::Transform((Vector2){containerPos.x, buildingRadius.y + 20.0f}, buildingRadius);
 		buildPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
 		buildPage->addElement< NoGUI::Button >(tabShape, buildingTransform, "Building", "Monument");
+	}
+	void addSpellPage()
+	{
+		std::shared_ptr< NoGUI::Page > spellsPage = addPage(false);
+		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+		std::shared_ptr< NoGUI::CContainer > spellComponents = spellsPage->addComponents("Spell");
+		spellComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		Vector2 containerRadius = (Vector2){100.0f, 360.0f};
+		Vector2 spellRadius = (Vector2){80.0f, 60.0f};
+		Vector2 containerPos = (Vector2){720.0f - 100.0f, 360.0f};
+		NoGUI::Transform containerTransform = NoGUI::Transform(containerPos, containerRadius);
+		NoGUI::Transform spell0Transform = NoGUI::Transform((Vector2){containerPos.x, spellRadius.y + 20.0f}, spellRadius);
+		NoGUI::Transform spell1Transform = NoGUI::Transform((Vector2){containerPos.x, spellRadius.y * 3 + 20.0f * 2}, spellRadius);
+		spellsPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
+		spellsPage->addElement< NoGUI::Button >(tabShape, spell0Transform, "Spell", "Command");
+		spellsPage->addElement< NoGUI::Button >(tabShape, spell1Transform, "Spell", "Heal");
 	}
 	void addUnitPage()
 	{
@@ -276,6 +295,7 @@ public:
 		addResourcePage();
 		addActionTabsPage();
 		addBuildPage();
+		addSpellPage();
 		addUnitPage();
 		addVictoryPage();
 	}

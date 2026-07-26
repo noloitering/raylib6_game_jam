@@ -7,10 +7,13 @@
 #include "raylib.h"
 
 enum class BuildingType {NONE=0, MONUMENT=1};
+enum class SpellType {NONE=0, COMMAND=1, HEAL=2};
+const std::vector< float > BUILDINGCOSTS = {0.0f, 20.0f};
+const std::vector< float > SPELLCOSTS = {0.0f, 0.0f, 20.0f};
+
 enum class BuildingState {CONSTRUCTION=0, BUILT=1, ACTIVE=2};
 enum class WorkerState {ROAM=0, WALK=1, HEAL=2};
 enum class SpawnType {NONE=0, WORKER=1, ENEMY=2, LYCANTHROPE=3, UNDEAD=4};
-const std::vector< float > BUILDINGCOSTS = {0.0f, 20.0f};
 
 class CInterface
 {
@@ -171,4 +174,13 @@ public:
 	
 		return getComponent< C >().owned;
 	}
+};
+
+class Action
+{
+public:
+	int action = 0;
+	bool cast = false;
+	Action(int act=0, bool isSpell=false)
+		: action(act), cast(isSpell) {}
 };

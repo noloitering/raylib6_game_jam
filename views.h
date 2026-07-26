@@ -19,7 +19,7 @@ protected:
 	void setVictory(bool win);
 public:
 	Camera camera = { 0 };
-	BuildingType currentBuild = BuildingType::NONE;
+	Action currentAction;
 	Vector3 portalSize;
 	Scene(NoMVC::Controller* g, NoMVC::WindowConfig conf)
 		: NoMVC::View(g, conf) 

@@ -358,7 +358,7 @@ public:
 			}
 			else if ( closestEntityDistance <= detectionDistance )
 			{
-				enemy->getComponent< CWorker >().state = WorkerState::WALK;
+				enemy->getComponent< CWorker >().state = WorkerState::HEAL;
 				enemyMove.target = closestEntity->getComponent< CTransform3D >().pos;
 			}
 			else
@@ -418,7 +418,7 @@ public:
 			float detectionDistance = 100.0f;
 			float meleeDistance = 30.0f;
 			auto [closestEnemy, closestEnemyDistance] = getClosestEntity3D(unit->getComponent< CTransform3D >().pos, enemies);
-			if ( closestEnemyDistance <= detectionDistance )
+			if ( closestEnemyDistance <= detectionDistance && unit->getComponent< CWorker >().state != WorkerState::WALK )
 			{
 				if ( closestEnemyDistance <= meleeDistance )
 				{
@@ -428,7 +428,7 @@ public:
 				}
 				else
 				{
-					unit->getComponent< CWorker >().state = WorkerState::WALK;
+					unit->getComponent< CWorker >().state = WorkerState::HEAL;
 					unitMove.target = closestEnemy->getComponent< CTransform3D >().pos;
 				}
 			}

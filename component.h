@@ -99,10 +99,10 @@ class CMove : public CInterface
 {
 public:
 	CMove(float magnitude=80.0f, Vector3 origin = (Vector3){0.0f, 0.0f, 0.0f}, Vector3 direction=(Vector3){0.0f, 0.0f, 0.0f}) 
-		: home(origin), move(direction) {speed = magnitude * (1.0f / 60.0f);}
+		: home(origin), target(direction) {speed = magnitude * (1.0f / 60.0f);}
 	float speed = 80.0f * (1.0f / 60.0f);
 	Vector3 home = (Vector3){0.0f, 0.0f, 0.0f};
-	Vector3 move = (Vector3){0.0f, 0.0f, 0.0f};
+	Vector3 target = (Vector3){0.0f, 0.0f, 0.0f};
 };
 
 class CSpawner : public CInterface

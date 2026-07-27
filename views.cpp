@@ -413,16 +413,15 @@ void Scene::run()
 				float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
 				if ( distanceToHome > 150.0f )
 				{
-//					distanceToHome = std::sqrt(distanceToHome);
-					workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
-					workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+					workerMove.target = workerMove.home;
 				}
-				else if ( clock->getFrame() % 60 == 0 )
+				else if ( workerMove.target.x == workerTransform.pos.x && workerMove.target.y == workerTransform.pos.y )
 				{
 					int randomAngle = GetRandomValue(0, 360);
+					int randomDistance = GetRandomValue(30, 150);
 					Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
-					workerMove.move.x = workerMove.speed * randomDir.x;
-					workerMove.move.y = workerMove.speed * randomDir.y;
+					workerMove.target.x = workerMove.home.x + randomDistance * randomDir.x;
+					workerMove.target.y = workerMove.home.y + randomDistance * randomDir.y;
 				}
 			}
 		}
@@ -436,15 +435,16 @@ void Scene::run()
 				float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
 				if ( distanceToHome > 50.0f )
 				{
-					workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
-					workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+					workerMove.target = workerMove.home;
 				}
-				else if ( clock->getFrame() % 60 == 0 )
+//				else if ( clock->getFrame() % 60 == 0 )
+				else if ( workerMove.target.x == workerTransform.pos.x && workerMove.target.y == workerTransform.pos.y )
 				{
 					int randomAngle = GetRandomValue(0, 360);
+					int randomDistance = GetRandomValue(30, 50);
 					Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
-					workerMove.move.x = workerMove.speed * randomDir.x;
-					workerMove.move.y = workerMove.speed * randomDir.y;
+					workerMove.target.x = workerMove.home.x + randomDistance * randomDir.x;
+					workerMove.target.y = workerMove.home.y + randomDistance * randomDir.y;
 				}
 			}
 		}
@@ -458,16 +458,15 @@ void Scene::run()
 				float distanceToHome = std::sqrt(toHome.x * toHome.x + toHome.y * toHome.y);
 				if ( distanceToHome > 150.0f )
 				{
-//					distanceToHome = std::sqrt(distanceToHome);
-					workerMove.move.x = (toHome.x / distanceToHome) * workerMove.speed;
-					workerMove.move.y = (toHome.y / distanceToHome) * workerMove.speed;
+					workerMove.target = workerMove.home;
 				}
-				else if ( clock->getFrame() % 60 == 0 )
+				else if ( workerMove.target.x == workerTransform.pos.x && workerMove.target.y == workerTransform.pos.y )
 				{
 					int randomAngle = GetRandomValue(0, 360);
+					int randomDistance = GetRandomValue(30, 150);
 					Vector2 randomDir = (Vector2){std::cos(randomAngle * PI / 180.0f), std::sin(randomAngle * PI / 180.0f)};
-					workerMove.move.x = workerMove.speed * randomDir.x;
-					workerMove.move.y = workerMove.speed * randomDir.y;
+					workerMove.target.x = workerMove.home.x + randomDistance * randomDir.x;
+					workerMove.target.y = workerMove.home.y + randomDistance * randomDir.y;
 				}
 			}
 		}
@@ -577,11 +576,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 								{
 									unit->getComponent< CWorker >().state = WorkerState::WALK;
 									CMove& unitMove = unit->getComponent< CMove >();
-									Vector3 unitPos = unit->getComponent< CTransform3D >().pos;
-									Vector3 direction = (Vector3){mousePos.x - unitPos.x, mousePos.y - unitPos.y, 0.0f};
-									float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-									unitMove.move.x = direction.x / distance * unitMove.speed;
-									unitMove.move.y = direction.y / distance * unitMove.speed;
+									unitMove.target = mousePos;
 								}
 								
 								break;

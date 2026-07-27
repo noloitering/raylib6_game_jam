@@ -353,16 +353,13 @@ public:
 			if ( closestEntityDistance <= meleeDistance )
 			{
 				enemy->getComponent< CWorker >().state = WorkerState::HEAL;
-				enemyMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+				enemyMove.target = enemyTransform.pos;
 				closestEntity->getComponent< CHealth >().hp -= 0.25f;
 			}
 			else if ( closestEntityDistance <= detectionDistance )
 			{
 				enemy->getComponent< CWorker >().state = WorkerState::WALK;
-				Vector3 closestPos = closestEntity->getComponent< CTransform3D >().pos;
-				Vector3 direction = (Vector3){closestPos.x - enemyTransform.pos.x, closestPos.y - enemyTransform.pos.y, 0.0f};
-				enemyMove.move.x = direction.x / closestEntityDistance * enemyMove.speed;
-				enemyMove.move.y = direction.y / closestEntityDistance * enemyMove.speed;
+				enemyMove.target = closestEntity->getComponent< CTransform3D >().pos;
 			}
 			else
 			{
@@ -384,7 +381,7 @@ public:
 				if ( closestMonumentDistance < maxProximity )
 				{
 					worker->getComponent< CWorker >().state = WorkerState::HEAL;
-					workerMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+					workerMove.target = workerTransform.pos;
 					CHealth& monumentHealth = closestMonument->getComponent< CHealth >();
 					monumentHealth.hp += 0.25f;
 					if ( monumentHealth.hp >= monumentHealth.max )
@@ -399,11 +396,7 @@ public:
 				}
 				else
 				{
-					worker->getComponent< CWorker >().state = WorkerState::WALK;
-					Vector3 closestPos = closestMonument->getComponent< CTransform3D >().pos;
-					Vector3 direction = (Vector3){closestPos.x - workerTransform.pos.x, closestPos.y - workerTransform.pos.y, 0.0f};
-					workerMove.move.x = (direction.x / closestMonumentDistance) * workerMove.speed;
-					workerMove.move.y = (direction.y / closestMonumentDistance) * workerMove.speed;
+					workerMove.target = closestMonument->getComponent< CTransform3D >().pos;
 				}
 			}
 			else
@@ -412,10 +405,8 @@ public:
 				float distance = direction.x * direction.x + direction.y * direction.y;
 				if ( distance > maxProximity * maxProximity )
 				{
-					distance = std::sqrt(distance);
 					worker->getComponent< CWorker >().state = WorkerState::WALK;
-					workerMove.move.x = (direction.x / distance) * workerMove.speed;
-					workerMove.move.y = (direction.y / distance) * workerMove.speed;
+					workerMove.target = workerMove.home;
 				}
 			}
 		}
@@ -432,19 +423,16 @@ public:
 				if ( closestEnemyDistance <= meleeDistance )
 				{
 					unit->getComponent< CWorker >().state = WorkerState::HEAL;
-					unitMove.move = (Vector3){0.0f, 0.0f, 0.0f};
+					unitMove.target = unitTransform.pos;
 					closestEnemy->getComponent< CHealth >().hp -= 0.25f;
 				}
 				else
 				{
 					unit->getComponent< CWorker >().state = WorkerState::WALK;
-					Vector3 closestPos = closestEnemy->getComponent< CTransform3D >().pos;
-					Vector3 direction = (Vector3){closestPos.x - unitTransform.pos.x, closestPos.y - unitTransform.pos.y, 0.0f};
-					unitMove.move.x = direction.x / closestEnemyDistance * unitMove.speed;
-					unitMove.move.y = direction.y / closestEnemyDistance * unitMove.speed;
+					unitMove.target = closestEnemy->getComponent< CTransform3D >().pos;
 				}
 			}
-			else
+			else if ( unitTransform.pos.x == unitMove.target.x && unitTransform.pos.y == unitMove.target.y )
 			{
 				unit->getComponent< CWorker >().state = WorkerState::ROAM;
 			}
@@ -456,16 +444,37 @@ public:
 			CTransform3D& transform = entity->getComponent< CTransform3D >();
 			if ( movement.owned )
 			{
-				if ( transform.pos.x + movement.move.x >= 509 || transform.pos.x + movement.move.x <= -509 )
+				if ( movement.target.x >= 509 )
 				{
-					movement.move.x *= -1;
+					movement.target.x = 508;
 				}
-				transform.pos.x += movement.move.x;
-				if ( transform.pos.y +  movement.move.y >= 360.0f || transform.pos.y +  movement.move.y <= -360.0f )
+				if ( movement.target.x <= -509 )
 				{
-					movement.move.y *= -1;
+					movement.target.x = -508;
 				}
-				transform.pos.y += movement.move.y;
+				if ( movement.target.y >= 360 )
+				{
+					movement.target.y = 359;
+				}
+				if ( movement.target.y <= -360 )
+				{
+					movement.target.y = -359;
+				}
+				Vector3 direction = (Vector3){movement.target.x - transform.pos.x, movement.target.y - transform.pos.y, 0.0f};
+				float distance = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+				if ( distance > 0.0f )
+				{
+					if ( movement.speed >= distance )
+					{
+						transform.pos.x = movement.target.x;
+						transform.pos.y = movement.target.y;
+					}
+					else
+					{
+						transform.pos.x += direction.x / distance * movement.speed;
+						transform.pos.y += direction.y / distance * movement.speed;
+					}
+				}
 			}
 			// death
 			CHealth& health = entity->getComponent< CHealth >();

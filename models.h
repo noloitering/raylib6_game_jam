@@ -494,9 +494,17 @@ public:
 		{
 			CTransform3D& transform = entity->getComponent< CTransform3D >();
 			CModel& model = entity->getComponent< CModel >();
+			CHealth& health = entity->getComponent< CHealth >();
 			if ( transform.owned && model.owned )
 			{
-				DrawModelEx(*(entity->getComponent< CModel >().model.get()), transform.pos, transform.axis, transform.angle, transform.scale, WHITE);
+				Color modelColor = WHITE;
+				if ( health.owned )
+				{
+					float healthRatio = health.hp / health.max;
+					modelColor.g *= healthRatio;
+					modelColor.b *= healthRatio;
+				}
+				DrawModelEx(*(entity->getComponent< CModel >().model.get()), transform.pos, transform.axis, transform.angle, transform.scale, modelColor);
 			}
 		}
 	}

@@ -7,7 +7,7 @@
 #include "raylib.h"
 
 enum class BuildingType {NONE=0, MONUMENT=1};
-enum class SpellType {NONE=0, COMMAND=1, HEAL=2};
+enum class SpellType {COMMAND=0, HEAL=2};
 const std::vector< float > BUILDINGCOSTS = {0.0f, 20.0f};
 const std::vector< float > SPELLCOSTS = {0.0f, 0.0f, 20.0f};
 

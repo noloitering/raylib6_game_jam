@@ -515,6 +515,7 @@ void Scene::run()
 		if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
 		{
 			currentAction.action = 0;
+			currentAction.cast = true;
 		}
 	}
 //	}
@@ -598,7 +599,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
 				if ( resources->mana >= manaCost )
 				{
-					if ( currentAction.cast )
+					if ( currentAction.cast && !TextIsEqual("Mountain", elem->getInner()) )
 					{
 						resources->mana -= manaCost;
 						switch ( currentAction.action )
@@ -616,6 +617,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 								std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
 								commandAnim->start = clock->getFrame();
 								commandAnim->end = commandAnim->start + 48;
+							}
 								
 								break;
 							}

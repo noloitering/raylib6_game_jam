@@ -230,30 +230,36 @@ void Scene::animateElements()
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
 	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	// monument area
 	unsigned char endFrame = 75;
 	unsigned char framesRemain = clock->getFrame() % endFrame;
 	if ( framesRemain == 0 )
 	{
 		grid->convertingSwampFill->col = grid->cellFill->col;
 		grid->convertingSwampFill->hoverCol = grid->cellFill->col;
-		grid->convertingPortalFill->col = grid->townFill->col;
-		grid->convertingPortalFill->hoverCol = grid->townFill->col;
+//		grid->convertingPortalFill->col = grid->townFill->col;
+//		grid->convertingPortalFill->hoverCol = grid->townFill->col;
 	}
 	else
 	{
 		float alphaPercent = (float)framesRemain / endFrame;
 		grid->convertingSwampFill->col = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 		grid->convertingSwampFill->hoverCol = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
-		grid->convertingPortalFill->col = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
-		grid->convertingPortalFill->hoverCol = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
+//		grid->convertingPortalFill->col = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
+//		grid->convertingPortalFill->hoverCol = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 	}
-	std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
-	if ( noManaBar->getShape()->fill->col.a > 0 )
+	// non looping animations
+	// mana bar
+	std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
+	if ( noManaAnim->start < clock->getFrame() && noManaAnim->end >= clock->getFrame() )
 	{
-		float alphaPercent = (float)framesRemain / (endFrame - 1);
-		noManaBar->getShape()->fill->col.a = static_cast<unsigned char>(255 * (1 - alphaPercent));
-		noManaBar->getShape()->outline->fill->col.a = static_cast<unsigned char>(255 *  (1 - alphaPercent));
+		std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
+		int framesRemain = noManaAnim->end - clock->getFrame();
+		float alphaPercent = (float)framesRemain / (noManaAnim->end - noManaAnim->start - 1);
+		noManaBar->getShape()->fill->col.a = static_cast<unsigned char>(255 * (alphaPercent));
+		noManaBar->getShape()->outline->fill->col.a = static_cast<unsigned char>(255 * (alphaPercent));
 	}
+	// unit selection
 	std::vector< std::shared_ptr< NoGUI::Element > > unitSelection = gui->getPage(Overlay::UNITS)->getElements("Unit");
 	bool hasFocus = false;
 	for (int i=0; i < unitSelection.size(); i++)
@@ -275,6 +281,33 @@ void Scene::animateElements()
 	if ( hasFocus == false && unitSelectionProgress > 0 )
 	{
 		unitSelectionProgress -= unitSelection.front()->width() / 60.0f * 1000.0f / unitSelectionTime;
+	}
+}
+
+void Scene::animateSpells()
+{
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	// TODO: seperate animating elements and spells
+	for (auto kvpair : game->assets->getAll< NoMEM::Anim >())
+	{
+		if ( kvpair.second->start < clock->getFrame() && kvpair.second->end >= clock->getFrame() )
+		{
+			if ( kvpair.first == "command" )
+			{
+				float outerCircleRadius = 1.0f * (clock->getFrame() - kvpair.second->start);
+				DrawCircleV(GetMousePosition(), 8.0f, MAROON);
+				DrawCircleLinesV(GetMousePosition(), outerCircleRadius, BLACK);
+			}
+			else if ( kvpair.first == "heal" )
+			{
+				float healRadius = 100.0f;
+				float maxFrames = kvpair.second->end - kvpair.second->start;
+				float currentFrame = clock->getFrame() - kvpair.second->start;
+				float radiusPercent = currentFrame / maxFrames * healRadius;
+				float outerCircleRadius = 1.0f * radiusPercent;
+				DrawCircleV(GetMousePosition(), outerCircleRadius, (Color){255, 203, 0, 80});
+			}
+		}
 	}
 }
 
@@ -383,6 +416,7 @@ void Scene::render()
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 	animateElements();
 	grid->render();
+	animateSpells();
 	BeginMode3D(camera);
 		entities->render();
 	EndMode3D();
@@ -559,6 +593,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 		{
 			if ( TextIsEqual("Cell", elem->getTag()) )
 			{
+				std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 				std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
 				float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
 				if ( resources->mana >= manaCost )
@@ -578,6 +613,9 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 									CMove& unitMove = unit->getComponent< CMove >();
 									unitMove.target = mousePos;
 								}
+								std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
+								commandAnim->start = clock->getFrame();
+								commandAnim->end = commandAnim->start + 48;
 								
 								break;
 							}
@@ -611,6 +649,9 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 										}
 									}
 								}
+								std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("heal");
+								commandAnim->start = clock->getFrame();
+								commandAnim->end = commandAnim->start + 60;
 								
 								break;
 							}
@@ -647,10 +688,14 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				{
 					// TODO: seperate into own function
 					std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+					std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 					std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
+					std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
 					noManaBar->getShape()->fill->col.a = 255;
 					noManaBar->getShape()->outline->fill->col.a = 255;
 					game->sfx->play(game->assets->get< Sound >("nomana.wav"));
+					noManaAnim->start = clock->getFrame();
+					noManaAnim->end = noManaAnim->start + 75;
 				}
 			}
 			else if ( TextIsEqual("Unit", elem->getTag()) )

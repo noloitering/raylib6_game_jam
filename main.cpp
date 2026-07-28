@@ -44,6 +44,9 @@ int main()
 	game.assets->addModel("town1", "./assets/building_home_B_yellow.gltf");
 	game.assets->addModel("town2", "./assets/building_barracks_yellow.gltf");
 	game.assets->addModel("town3", "./assets/building_castle_yellow.gltf");
+	game.assets->addAnimation("nomana", (NoMEM::Anim){0, 0, 1, false});
+	game.assets->addAnimation("command", (NoMEM::Anim){0, 0, 1, false});
+	game.assets->addAnimation("heal", (NoMEM::Anim){0, 0, 1, false});
 	std::cout << "assets loaded" << std::endl;
 	gridModel->initialize();
 	std::cout << "grid initialized" << std::endl;

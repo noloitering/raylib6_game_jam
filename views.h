@@ -36,6 +36,7 @@ public:
 	}
 	std::vector< std::shared_ptr< NoGUI::Element > > getSurrondingCells(std::shared_ptr< NoGUI::Element > centerElem, unsigned int radius=1);
 	void animateElements();
+	void animateSpells();
 	void spawnEntities();
 	void placeMonument(std::shared_ptr< Tile > tile);
 	void placePortal(std::shared_ptr< Tile > tile);

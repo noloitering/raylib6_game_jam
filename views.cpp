@@ -597,8 +597,96 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 	{	
 		case NoGUI::FocusEvent::ONFOCUS:
 		{
-			std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
-			if ( TextIsEqual("Cell", elem->getTag()) && gui->getPage(Overlay::ACTION)->getVisible() == false )
+			if ( TextIsEqual("Build", elem->getInner()) )
+			{
+				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+				gui->getPage(Overlay::TABS)->setActive(false);
+				gui->getPage(Overlay::ACTION)->setEnabled(true);
+				gui->getPage(Overlay::BUILDINGS)->setEnabled(true);
+			}
+			else if ( TextIsEqual("Spells", elem->getInner()) )
+			{
+				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+				gui->getPage(Overlay::TABS)->setActive(false);
+				gui->getPage(Overlay::ACTION)->setEnabled(true);
+				gui->getPage(Overlay::SPELLS)->setEnabled(true);
+			}
+			if ( TextIsEqual("Building", elem->getTag()) )
+			{
+				gui->closeActions();
+				if ( TextIsEqual("Monument", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(BuildingType::MONUMENT);
+					currentAction.cast = false;
+				}
+			}
+			else if ( TextIsEqual("Spell", elem->getTag()) )
+			{
+				gui->closeActions();
+				if ( TextIsEqual("Command", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::COMMAND);
+					currentAction.cast = true;
+				}
+				else if ( TextIsEqual("Heal", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::HEAL);
+					currentAction.cast = true;
+				}
+			}
+			else if ( TextIsEqual("Close", elem->getTag()) )
+			{
+				gui->closeActions();
+			}
+			else if ( TextIsEqual("Unit", elem->getTag()) )
+			{
+				unitSelectionProgress = 0.0f;
+			}
+
+			break;
+		}
+			
+		case NoGUI::FocusEvent::FOCUSING:
+		{
+			if ( TextIsEqual("Unit", elem->getTag()) )
+			{
+				std::shared_ptr< NoGUI::Slider > unitSlider = dynamic_pointer_cast< NoGUI::Slider >(elem);
+				NoGUI::Transform selectionTransform = unitSlider->getSlideTransform();
+				if ( unitSelectionProgress < unitSlider->width() )
+				{
+					unitSlider->slideTo(unitSelectionProgress);
+					unitSelectionProgress += unitSlider->width() / 60.0f * 1000.0f / unitSelectionTime;
+				}
+				else
+				{
+					std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
+					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+					unitSelectionProgress = 0.0f;
+					gui->getPage(Overlay::UNITS)->setEnabled(false);
+					grid->getPage(GameGrid::GRID)->setActive(true);
+					int portalID = TextToInteger(gui->getPage(Overlay::UNITS)->getElements("Container").front()->getInner());
+					for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
+					{
+						if ( entity->getId() == portalID )
+						{
+							entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
+						}
+					}
+				}
+			}
+			
+			break;
+		}
+			
+		case NoGUI::FocusEvent::OFFFOCUS:
+		{
+			std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+			if ( TextIsEqual("Restart", elem->getTag()) )
+			{
+				setVictory(false);
+			}
+			else if ( TextIsEqual("Cell", elem->getTag()) && gui->getPage(Overlay::ACTION)->getVisible() == false )
 			{
 				std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 				std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
@@ -694,7 +782,6 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				else
 				{
 					// TODO: seperate into own function
-					std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 					std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 					std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
 					std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
@@ -704,97 +791,6 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					noManaAnim->start = clock->getFrame();
 					noManaAnim->end = noManaAnim->start + 75;
 				}
-			}
-			else if ( TextIsEqual("Unit", elem->getTag()) )
-			{
-				unitSelectionProgress = 0.0f;
-			}
-				
-			break;
-		}
-			
-		case NoGUI::FocusEvent::FOCUSING:
-		{
-			if ( TextIsEqual("Unit", elem->getTag()) )
-			{
-				std::shared_ptr< NoGUI::Slider > unitSlider = dynamic_pointer_cast< NoGUI::Slider >(elem);
-				NoGUI::Transform selectionTransform = unitSlider->getSlideTransform();
-				if ( unitSelectionProgress < unitSlider->width() )
-				{
-					unitSlider->slideTo(unitSelectionProgress);
-					unitSelectionProgress += unitSlider->width() / 60.0f * 1000.0f / unitSelectionTime;
-				}
-				else
-				{
-					std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
-					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
-					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-					unitSelectionProgress = 0.0f;
-					gui->getPage(Overlay::UNITS)->setEnabled(false);
-					grid->getPage(GameGrid::GRID)->setActive(true);
-					int portalID = TextToInteger(gui->getPage(Overlay::UNITS)->getElements("Container").front()->getInner());
-					for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
-					{
-						if ( entity->getId() == portalID )
-						{
-							entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
-						}
-					}
-				}
-			}
-			
-			break;
-		}
-			
-		case NoGUI::FocusEvent::OFFFOCUS:
-		{
-			if ( TextIsEqual("Build", elem->getInner()) )
-			{
-				std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
-				gui->getPage(Overlay::TABS)->setActive(false);
-				gui->getPage(Overlay::ACTION)->setEnabled(true);
-				gui->getPage(Overlay::BUILDINGS)->setEnabled(true);
-			}
-			else if ( TextIsEqual("Spells", elem->getInner()) )
-			{
-				std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
-				gui->getPage(Overlay::TABS)->setActive(false);
-				gui->getPage(Overlay::ACTION)->setEnabled(true);
-				gui->getPage(Overlay::SPELLS)->setEnabled(true);
-			}
-			else if ( TextIsEqual("Building", elem->getTag()) )
-			{
-				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
-				gui->closeActions();
-				if ( TextIsEqual("Monument", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(BuildingType::MONUMENT);
-					currentAction.cast = false;
-				}
-			}
-			else if ( TextIsEqual("Spell", elem->getTag()) )
-			{
-				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
-				gui->closeActions();
-				if ( TextIsEqual("Command", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(SpellType::COMMAND);
-					currentAction.cast = true;
-				}
-				else if ( TextIsEqual("Heal", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(SpellType::HEAL);
-					currentAction.cast = true;
-				}
-			}
-			else if ( TextIsEqual("Close", elem->getTag()) )
-			{
-				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
-				gui->closeActions();
-			}
-			else if ( TextIsEqual("Restart", elem->getTag()) )
-			{
-				setVictory(false);
 			}
 			
 			break;

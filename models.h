@@ -155,13 +155,14 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, BUILDINGS=2, SPELLS=3, UNITS=4, VICTORY=5};
+	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, VICTORY=6};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
 	std::shared_ptr< NoGUI::Fill > containerFill = std::make_shared< NoGUI::Fill >(GRAY);
 	std::shared_ptr< NoGUI::Fill > manaBarFill = std::make_shared< NoGUI::Fill >(VIOLET);
 	std::shared_ptr< NoGUI::Fill > noManaFill = std::make_shared< NoGUI::Fill >(MAROON);
+	std::shared_ptr< NoGUI::Fill > blackTextFill = std::make_shared< NoGUI::Fill >(BLACK);
 	// outlines
 	std::shared_ptr< NoGUI::Fill > noManaOutlineFill = std::make_shared< NoGUI::Fill >(RED);
 	std::shared_ptr< NoGUI::Fill > tabOutlineFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
@@ -174,6 +175,8 @@ public:
 	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
 	std::shared_ptr< NoGUI::nShape > unitShape = std::make_shared< NoGUI::nShape >(4, invis, tabOutline);
 	std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
+	// transforms
+	NoGUI::Transform actionContainerTransform;
 	Overlay()
 		: NoGUI::Manager(false) {}
 
@@ -222,33 +225,40 @@ public:
 		tabPage->addElement< NoGUI::Button >(tabShape, buildTransform, "Tab", "Build");
 		tabPage->addElement< NoGUI::Button >(tabShape, spellTransform, "Tab", "Spells");
 	}
+	void addActionSelectionPage()
+	{
+		std::shared_ptr< NoGUI::Page > actionPage = addPage(false);
+//		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+		std::shared_ptr< NoGUI::CContainer > closeComponents = actionPage->addComponents("Close");
+		closeComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
+		Vector2 containerRadius = (Vector2){100.0f, 360.0f};
+		Vector2 containerPos = (Vector2){720.0f - containerRadius.x, 360.0f};
+		Vector2 closeRadius = (Vector2){65.0f, 25.0f};
+		Vector2 closePos = (Vector2){containerPos.x - containerRadius.x + closeRadius.x + 10.0f, 720.0f - closeRadius.y - 10.0f};
+		actionContainerTransform = NoGUI::Transform(containerPos, containerRadius);
+		NoGUI::Transform closeTransform = NoGUI::Transform(closePos, closeRadius);
+		actionPage->addElement< NoGUI::Element >(containerShape, actionContainerTransform, "Container");
+		actionPage->addElement< NoGUI::Button >(tabShape, closeTransform, "Close", "Close");
+	}
 	void addBuildPage()
 	{
 		std::shared_ptr< NoGUI::Page > buildPage = addPage(false);
-		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+//		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
 		std::shared_ptr< NoGUI::CContainer > buildingComponents = buildPage->addComponents("Building");
-		buildingComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
-		Vector2 containerRadius = (Vector2){100.0f, 360.0f};
+		buildingComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
 		Vector2 buildingRadius = (Vector2){80.0f, 60.0f};
-		Vector2 containerPos = (Vector2){720.0f - 100.0f, 360.0f};
-		NoGUI::Transform containerTransform = NoGUI::Transform(containerPos, containerRadius);
-		NoGUI::Transform buildingTransform = NoGUI::Transform((Vector2){containerPos.x, buildingRadius.y + 20.0f}, buildingRadius);
-		buildPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
+		NoGUI::Transform buildingTransform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, buildingRadius.y + 20.0f}, buildingRadius);
 		buildPage->addElement< NoGUI::Button >(tabShape, buildingTransform, "Building", "Monument");
 	}
 	void addSpellPage()
 	{
 		std::shared_ptr< NoGUI::Page > spellsPage = addPage(false);
-		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+//		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
 		std::shared_ptr< NoGUI::CContainer > spellComponents = spellsPage->addComponents("Spell");
-		spellComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
-		Vector2 containerRadius = (Vector2){100.0f, 360.0f};
+		spellComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
 		Vector2 spellRadius = (Vector2){80.0f, 60.0f};
-		Vector2 containerPos = (Vector2){720.0f - 100.0f, 360.0f};
-		NoGUI::Transform containerTransform = NoGUI::Transform(containerPos, containerRadius);
-		NoGUI::Transform spell0Transform = NoGUI::Transform((Vector2){containerPos.x, spellRadius.y + 20.0f}, spellRadius);
-		NoGUI::Transform spell1Transform = NoGUI::Transform((Vector2){containerPos.x, spellRadius.y * 3 + 20.0f * 2}, spellRadius);
-		spellsPage->addElement< NoGUI::Element >(containerShape, containerTransform, "Container");
+		NoGUI::Transform spell0Transform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, spellRadius.y + 20.0f}, spellRadius);
+		NoGUI::Transform spell1Transform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, spellRadius.y * 3 + 20.0f * 2}, spellRadius);
 		spellsPage->addElement< NoGUI::Button >(tabShape, spell0Transform, "Spell", "Command");
 		spellsPage->addElement< NoGUI::Button >(tabShape, spell1Transform, "Spell", "Heal");
 	}
@@ -290,10 +300,18 @@ public:
 		victoryPage->addElement< NoGUI::Element >(invisShape, messageTransform, "Label", "YOU WIN!");
 		victoryPage->addElement< NoGUI::Button >(tabShape, buttonTransform, "Restart", "Restart");
 	}
+	void closeActions()
+	{
+		getPage(Overlay::ACTION)->setEnabled(false);
+		getPage(Overlay::BUILDINGS)->setEnabled(false);
+		getPage(Overlay::SPELLS)->setEnabled(false);
+		getPage(Overlay::TABS)->setEnabled(true);
+	}
 	void initialize()
 	{
 		addResourcePage();
 		addActionTabsPage();
+		addActionSelectionPage();
 		addBuildPage();
 		addSpellPage();
 		addUnitPage();

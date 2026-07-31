@@ -563,6 +563,7 @@ void Scene::run()
 
 void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent hevent, NoGUI::FocusEvent fevent)
 {
+	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 	switch (hevent)
 	{
 		case NoGUI::HoverEvent::ONHOVER:
@@ -599,44 +600,17 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 		{
 			if ( TextIsEqual("Build", elem->getInner()) )
 			{
-				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+//				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 				gui->getPage(Overlay::TABS)->setActive(false);
 				gui->getPage(Overlay::ACTION)->setEnabled(true);
 				gui->getPage(Overlay::BUILDINGS)->setEnabled(true);
 			}
 			else if ( TextIsEqual("Spells", elem->getInner()) )
 			{
-				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+//				std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 				gui->getPage(Overlay::TABS)->setActive(false);
 				gui->getPage(Overlay::ACTION)->setEnabled(true);
 				gui->getPage(Overlay::SPELLS)->setEnabled(true);
-			}
-			if ( TextIsEqual("Building", elem->getTag()) )
-			{
-				gui->closeActions();
-				if ( TextIsEqual("Monument", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(BuildingType::MONUMENT);
-					currentAction.cast = false;
-				}
-			}
-			else if ( TextIsEqual("Spell", elem->getTag()) )
-			{
-				gui->closeActions();
-				if ( TextIsEqual("Command", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(SpellType::COMMAND);
-					currentAction.cast = true;
-				}
-				else if ( TextIsEqual("Heal", elem->getInner()) )
-				{
-					currentAction.action = static_cast<int>(SpellType::HEAL);
-					currentAction.cast = true;
-				}
-			}
-			else if ( TextIsEqual("Close", elem->getTag()) )
-			{
-				gui->closeActions();
 			}
 			else if ( TextIsEqual("Unit", elem->getTag()) )
 			{
@@ -681,116 +655,147 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 			
 		case NoGUI::FocusEvent::OFFFOCUS:
 		{
-			std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 			if ( TextIsEqual("Restart", elem->getTag()) )
 			{
 				setVictory(false);
 			}
-			else if ( TextIsEqual("Cell", elem->getTag()) && gui->getPage(Overlay::ACTION)->getVisible() == false )
+			else if ( TextIsEqual("Cell", elem->getTag()) )
 			{
-				std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
-				std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
-				float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
-				if ( resources->mana >= manaCost )
+				if ( gui->getPage(Overlay::ACTION)->getVisible() == false )
 				{
-					if ( currentAction.cast && !TextIsEqual("Mountain", elem->getInner()) )
+					std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+					std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+					float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
+					if ( resources->mana >= manaCost )
 					{
-						resources->mana -= manaCost;
-						switch ( currentAction.action )
+						if ( currentAction.cast && !TextIsEqual("Mountain", elem->getInner()) )
 						{
-							case static_cast<int>(SpellType::COMMAND):
+							resources->mana -= manaCost;
+							switch ( currentAction.action )
 							{
-								std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-								Vector3 mousePos = convert2DPos3D(GetMousePosition());
-								for (std::shared_ptr< Entity > unit : entities->entities.getEntities("Unit"))
+								case static_cast<int>(SpellType::COMMAND):
 								{
-									unit->getComponent< CWorker >().state = WorkerState::WALK;
-									CMove& unitMove = unit->getComponent< CMove >();
-									unitMove.target = mousePos;
-								}
-								std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
-								commandAnim->start = clock->getFrame();
-								commandAnim->end = commandAnim->start + 48;
-								
-								break;
-							}
-							
-							case static_cast<int>(SpellType::HEAL):
-							{
-								std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-								Vector3 mousePos = convert2DPos3D(GetMousePosition());
-								// get all entities within a certain radius of a point
-								float healRadius = 100.0f;
-								float healAmount = 20.0f;
-								std::vector< std::shared_ptr< Entity > > units = entities->entities.getEntities("Unit");
-								std::vector< std::shared_ptr< Entity > > workers = entities->entities.getEntities("Worker");
-								for (const std::vector< std::shared_ptr< Entity > >& friendlyVector : {units, workers})
-								{
-									for (std::shared_ptr< Entity > friendly : friendlyVector)
+									std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+									Vector3 mousePos = convert2DPos3D(GetMousePosition());
+									for (std::shared_ptr< Entity > unit : entities->entities.getEntities("Unit"))
 									{
-										Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
-										Vector3 direction = (Vector3){mousePos.x - friendlyPos.x, mousePos.y - friendlyPos.y, 0.0f};
-										float distance = direction.x * direction.x + direction.y * direction.y;
-										std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
-										if ( distance <= healRadius * healRadius )
+										unit->getComponent< CWorker >().state = WorkerState::WALK;
+										CMove& unitMove = unit->getComponent< CMove >();
+										unitMove.target = mousePos;
+									}
+									std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
+									commandAnim->start = clock->getFrame();
+									commandAnim->end = commandAnim->start + 48;
+								
+									break;
+								}
+							
+								case static_cast<int>(SpellType::HEAL):
+								{
+									std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+									Vector3 mousePos = convert2DPos3D(GetMousePosition());
+									// get all entities within a certain radius of a point
+									float healRadius = 100.0f;
+									float healAmount = 20.0f;
+									std::vector< std::shared_ptr< Entity > > units = entities->entities.getEntities("Unit");
+									std::vector< std::shared_ptr< Entity > > workers = entities->entities.getEntities("Worker");
+									for (const std::vector< std::shared_ptr< Entity > >& friendlyVector : {units, workers})
+									{
+										for (std::shared_ptr< Entity > friendly : friendlyVector)
 										{
-											std::cout << "healing " << friendly->getTag() << std::endl;
-											CHealth& friendlyHealth = friendly->getComponent< CHealth >();
-											friendlyHealth.hp += healAmount;
-											if ( friendlyHealth.hp > friendlyHealth.max )
+											Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
+											Vector3 direction = (Vector3){mousePos.x - friendlyPos.x, mousePos.y - friendlyPos.y, 0.0f};
+											float distance = direction.x * direction.x + direction.y * direction.y;
+											std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
+											if ( distance <= healRadius * healRadius )
 											{
-												friendlyHealth.hp = friendlyHealth.max;
+												std::cout << "healing " << friendly->getTag() << std::endl;
+												CHealth& friendlyHealth = friendly->getComponent< CHealth >();
+												friendlyHealth.hp += healAmount;
+												if ( friendlyHealth.hp > friendlyHealth.max )
+												{
+													friendlyHealth.hp = friendlyHealth.max;
+												}
 											}
 										}
 									}
+									std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("heal");
+									commandAnim->start = clock->getFrame();
+									commandAnim->end = commandAnim->start + 60;
+								
+									break;
 								}
-								std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("heal");
-								commandAnim->start = clock->getFrame();
-								commandAnim->end = commandAnim->start + 60;
-								
-								break;
-							}
 							
-							default:
-							{
-								
-								break;
+								default:
+								{
+									
+									break;
+								}
 							}
 						}
-					}
-					else if ( TextIsEqual("Swamp", elem->getInner()) )
-					{
-						resources->mana -= manaCost;
-						switch ( currentAction.action )
+						else if ( TextIsEqual("Swamp", elem->getInner()) )
 						{
-							case static_cast<int>(BuildingType::MONUMENT): // hate this fucking syntax try to give actions their own namespace and got duplicate of NONE error KMS
+							resources->mana -= manaCost;
+							switch ( currentAction.action )
 							{
-								std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
-								placeMonument(tile);
+								case static_cast<int>(BuildingType::MONUMENT): // hate this fucking syntax try to give actions their own namespace and got duplicate of NONE error KMS
+								{
+									std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
+									placeMonument(tile);
 								
-								break;
-							}
+									break;
+								}
 							
-							default:
-							{
+								default:
+								{
 								
-								break;
+									break;
+								}
 							}
 						}
 					}
+					else
+					{
+						// TODO: seperate into own function
+						std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+						std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
+						std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
+						noManaBar->getShape()->fill->col.a = 255;
+						noManaBar->getShape()->outline->fill->col.a = 255;
+						game->sfx->play(game->assets->get< Sound >("nomana.wav"));
+						noManaAnim->start = clock->getFrame();
+						noManaAnim->end = noManaAnim->start + 75;
+					}
 				}
-				else
+			}
+			else if ( TextIsEqual("Building", elem->getTag()) )
+			{
+				std::cout << "mouse released on building" << std::endl;
+				gui->closeActions();
+				if ( TextIsEqual("Monument", elem->getInner()) )
 				{
-					// TODO: seperate into own function
-					std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
-					std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
-					std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
-					noManaBar->getShape()->fill->col.a = 255;
-					noManaBar->getShape()->outline->fill->col.a = 255;
-					game->sfx->play(game->assets->get< Sound >("nomana.wav"));
-					noManaAnim->start = clock->getFrame();
-					noManaAnim->end = noManaAnim->start + 75;
+					currentAction.action = static_cast<int>(BuildingType::MONUMENT);
+					currentAction.cast = false;
 				}
+			}
+			else if ( TextIsEqual("Spell", elem->getTag()) )
+			{
+				std::cout << "mouse released on spell" << std::endl;
+				gui->closeActions();
+				if ( TextIsEqual("Command", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::COMMAND);
+					currentAction.cast = true;
+				}
+				else if ( TextIsEqual("Heal", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::HEAL);
+					currentAction.cast = true;
+				}
+			}
+			else if ( TextIsEqual("Close", elem->getTag()) )
+			{
+				gui->closeActions();
 			}
 			
 			break;

@@ -483,7 +483,7 @@ void Scene::castSpell(const Vector3& point, SpellType spell)
 
 			break;
 		}
-							
+
 		case SpellType::HEAL:
 		{
 			castHeal(convert2DPos3D(GetMousePosition()));
@@ -735,6 +735,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
 					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 					unitSelectionProgress = 0.0f;
+					unitSlider->slideTo(0.0f);
 					gui->getPage(Overlay::UNITS)->setEnabled(false);
 					grid->getPage(GameGrid::GRID)->setActive(true);
 					int portalID = TextToInteger(gui->getPage(Overlay::UNITS)->getElements("Container").front()->getInner());

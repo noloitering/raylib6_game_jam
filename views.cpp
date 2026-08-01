@@ -225,41 +225,39 @@ void Scene::spawnEntities()
 	}
 }
 
-void Scene::animateElements()
+void Scene::animateSwampCells(unsigned int current, unsigned int frames)
 {
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
-	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
-	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
-	// monument area
-	unsigned char endFrame = 75;
-	unsigned char framesRemain = clock->getFrame() % endFrame;
+	unsigned int framesRemain = current % frames;
 	if ( framesRemain == 0 )
 	{
 		grid->convertingSwampFill->col = grid->cellFill->col;
 		grid->convertingSwampFill->hoverCol = grid->cellFill->col;
-//		grid->convertingPortalFill->col = grid->townFill->col;
-//		grid->convertingPortalFill->hoverCol = grid->townFill->col;
 	}
 	else
 	{
-		float alphaPercent = (float)framesRemain / endFrame;
+		float alphaPercent = (float)framesRemain / frames;
 		grid->convertingSwampFill->col = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 		grid->convertingSwampFill->hoverCol = (Color){grid->swampFill->col.r, grid->swampFill->col.g, grid->swampFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
-//		grid->convertingPortalFill->col = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
-//		grid->convertingPortalFill->hoverCol = (Color){grid->portalFill->col.r, grid->portalFill->col.g, grid->portalFill->col.b, static_cast<unsigned char>(255 * alphaPercent)};
 	}
-	// non looping animations
-	// mana bar
-	std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
-	if ( noManaAnim->start < clock->getFrame() && noManaAnim->end >= clock->getFrame() )
+}
+
+void Scene::animateManaBar(unsigned int current, unsigned int start, unsigned int end)
+{
+	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+	if ( start < current && end >= current )
 	{
 		std::shared_ptr< NoGUI::Slider > noManaBar = dynamic_pointer_cast< NoGUI::Slider >(gui->getPage(Overlay::RESOURCES)->getElements("Mana").back());
-		int framesRemain = noManaAnim->end - clock->getFrame();
-		float alphaPercent = (float)framesRemain / (noManaAnim->end - noManaAnim->start - 1);
+		int framesRemain = end - current;
+		float alphaPercent = (float)framesRemain / (end - start - 1);
 		noManaBar->getShape()->fill->col.a = static_cast<unsigned char>(255 * (alphaPercent));
 		noManaBar->getShape()->outline->fill->col.a = static_cast<unsigned char>(255 * (alphaPercent));
 	}
-	// unit selection
+}
+
+void Scene::animateUnitSelection()
+{
+	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
 	std::vector< std::shared_ptr< NoGUI::Element > > unitSelection = gui->getPage(Overlay::UNITS)->getElements("Unit");
 	bool hasFocus = false;
 	for (int i=0; i < unitSelection.size(); i++)
@@ -270,6 +268,7 @@ void Scene::animateElements()
 		{
 			if ( unitSlideTransform.radius.x > 0.0f )
 			{
+				// visually slowly decrease progress
 				unitSlider->slideTo(unitSlideTransform.radius.x * 2 - unitSlider->width() / 60.0f * 1000.0f / unitSelectionTime);
 			}
 		}
@@ -280,35 +279,53 @@ void Scene::animateElements()
 	}
 	if ( hasFocus == false && unitSelectionProgress > 0 )
 	{
+		// slowly decrease progress
 		unitSelectionProgress -= unitSelection.front()->width() / 60.0f * 1000.0f / unitSelectionTime;
+	}
+}
+
+void Scene::animateElements()
+{
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
+	animateSwampCells(clock->getFrame());
+	animateManaBar(clock->getFrame(), noManaAnim->start, noManaAnim->end);
+	animateUnitSelection();
+}
+
+void Scene::animateSpellCommand(unsigned int current, unsigned int start, unsigned int end, Color innerCircleColor, Color outerCircleColor)
+{
+	if ( start < current && end >= current )
+	{
+		float maxFrames = end - start;
+		float currentFrame = current - start;
+		float alphaPercent = 1.0f - currentFrame / maxFrames;
+		innerCircleColor.a *= alphaPercent;
+		float outerCircleRadius = 1.0f * (current - start);
+		DrawCircleV(GetMousePosition(), 8.0f, innerCircleColor);
+		DrawCircleLinesV(GetMousePosition(), outerCircleRadius, outerCircleColor);
+	}
+}
+
+void Scene::animateSpellHeal(unsigned int current, unsigned int start, unsigned int end, Color circleColor, float radius)
+{
+	if ( start < current && end >= current )
+	{
+		float maxFrames = end - start;
+		float currentFrame = current - start;
+		float radiusPercent = currentFrame / maxFrames * radius;
+		float outerCircleRadius = 1.0f * radiusPercent;
+		DrawCircleV(GetMousePosition(), outerCircleRadius, circleColor);
 	}
 }
 
 void Scene::animateSpells()
 {
 	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
-	// TODO: seperate animating elements and spells
-	for (auto kvpair : game->assets->getAll< NoMEM::Anim >())
-	{
-		if ( kvpair.second->start < clock->getFrame() && kvpair.second->end >= clock->getFrame() )
-		{
-			if ( kvpair.first == "command" )
-			{
-				float outerCircleRadius = 1.0f * (clock->getFrame() - kvpair.second->start);
-				DrawCircleV(GetMousePosition(), 8.0f, MAROON);
-				DrawCircleLinesV(GetMousePosition(), outerCircleRadius, BLACK);
-			}
-			else if ( kvpair.first == "heal" )
-			{
-				float healRadius = 100.0f;
-				float maxFrames = kvpair.second->end - kvpair.second->start;
-				float currentFrame = clock->getFrame() - kvpair.second->start;
-				float radiusPercent = currentFrame / maxFrames * healRadius;
-				float outerCircleRadius = 1.0f * radiusPercent;
-				DrawCircleV(GetMousePosition(), outerCircleRadius, (Color){255, 203, 0, 80});
-			}
-		}
-	}
+	std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
+	std::shared_ptr< NoMEM::Anim > healAnim = game->assets->get< NoMEM::Anim >("heal");
+	animateSpellCommand(clock->getFrame(), commandAnim->start, commandAnim->end);
+	animateSpellHeal(clock->getFrame(), healAnim->start, healAnim->end);
 }
 
 void Scene::placeMonument(std::shared_ptr< Tile > tile)
@@ -407,6 +424,88 @@ std::vector< std::shared_ptr< NoGUI::Element > > Scene::buildMonument(std::share
 	tile->building->getComponent< CBuilding >().state = BuildingState::ACTIVE;
 	
 	return nearbyTowns; // TODO: handle the vector rather than just retruning
+}
+
+void Scene::castCommand(const Vector3& point, unsigned int animFrames)
+{
+	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+	for (std::shared_ptr< Entity > unit : entities->entities.getEntities("Unit"))
+	{
+		unit->getComponent< CWorker >().state = WorkerState::WALK;
+		CMove& unitMove = unit->getComponent< CMove >();
+		unitMove.target = point;
+	}
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
+	commandAnim->start = clock->getFrame();
+	commandAnim->end = commandAnim->start + animFrames;
+}
+
+void Scene::castHeal(const Vector3& point, float amount, float radius, unsigned int animFrames)
+{
+	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+	// get all entities within a certain radius of a point
+	std::vector< std::shared_ptr< Entity > > units = entities->entities.getEntities("Unit");
+	std::vector< std::shared_ptr< Entity > > workers = entities->entities.getEntities("Worker");
+	for (const std::vector< std::shared_ptr< Entity > >& friendlyVector : {units, workers})
+	{
+		for (std::shared_ptr< Entity > friendly : friendlyVector)
+		{
+			Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
+			Vector3 direction = (Vector3){point.x - friendlyPos.x, point.y - friendlyPos.y, 0.0f};
+			float distance = direction.x * direction.x + direction.y * direction.y;
+			std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
+			if ( distance <= radius * radius )
+			{
+				std::cout << "healing " << friendly->getTag() << std::endl;
+				CHealth& friendlyHealth = friendly->getComponent< CHealth >();
+				friendlyHealth.hp += amount;
+				if ( friendlyHealth.hp > friendlyHealth.max )
+				{
+					friendlyHealth.hp = friendlyHealth.max;
+				}
+			}
+		}
+	}
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("heal");
+	commandAnim->start = clock->getFrame();
+	commandAnim->end = commandAnim->start + animFrames;
+}
+
+void Scene::castSpell(const Vector3& point, SpellType spell)
+{
+	switch ( spell )
+	{
+		case SpellType::COMMAND:
+		{
+			castCommand(convert2DPos3D(GetMousePosition()));
+
+			break;
+		}
+							
+		case SpellType::HEAL:
+		{
+			castHeal(convert2DPos3D(GetMousePosition()));
+		
+			break;
+		}
+	
+		default:
+		{
+			
+			break;
+		}
+	}
+}
+
+void Scene::playNoMana()
+{
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
+	game->sfx->play(game->assets->get< Sound >("nomana.wav"));
+	noManaAnim->start = clock->getFrame();
+	noManaAnim->end = noManaAnim->start + 75;
 }
 
 void Scene::render() 
@@ -568,11 +667,11 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 	{
 		case NoGUI::HoverEvent::ONHOVER:
 		{
-			if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
-			{
-				std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
-				grid->getPage(GameGrid::GRID)->setActive(false);
-			}
+			// if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
+			// {
+				// std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+				// grid->getPage(GameGrid::GRID)->setActive(false);
+			// }
 			
 			break;
 		}
@@ -585,11 +684,11 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 		
 		case NoGUI::HoverEvent::OFFHOVER:
 		{
-			if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
-			{
-				std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
-				grid->getPage(GameGrid::GRID)->setActive(true);
-			}
+			// if ( !TextIsEqual("Cell", elem->getTag()) && !TextIsEqual("Label", elem->getTag()) )
+			// {
+				// std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
+				// grid->getPage(GameGrid::GRID)->setActive(true);
+			// }
 			
 			break;
 		}
@@ -663,7 +762,6 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 			{
 				if ( gui->getPage(Overlay::ACTION)->getVisible() == false )
 				{
-					std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 					std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
 					float manaCost = currentAction.cast ? SPELLCOSTS.at(currentAction.action) : BUILDINGCOSTS.at(currentAction.action);
 					if ( resources->mana >= manaCost )
@@ -671,67 +769,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 						if ( currentAction.cast && !TextIsEqual("Mountain", elem->getInner()) )
 						{
 							resources->mana -= manaCost;
-							switch ( currentAction.action )
-							{
-								case static_cast<int>(SpellType::COMMAND):
-								{
-									std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-									Vector3 mousePos = convert2DPos3D(GetMousePosition());
-									for (std::shared_ptr< Entity > unit : entities->entities.getEntities("Unit"))
-									{
-										unit->getComponent< CWorker >().state = WorkerState::WALK;
-										CMove& unitMove = unit->getComponent< CMove >();
-										unitMove.target = mousePos;
-									}
-									std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("command");
-									commandAnim->start = clock->getFrame();
-									commandAnim->end = commandAnim->start + 48;
-								
-									break;
-								}
-							
-								case static_cast<int>(SpellType::HEAL):
-								{
-									std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-									Vector3 mousePos = convert2DPos3D(GetMousePosition());
-									// get all entities within a certain radius of a point
-									float healRadius = 100.0f;
-									float healAmount = 20.0f;
-									std::vector< std::shared_ptr< Entity > > units = entities->entities.getEntities("Unit");
-									std::vector< std::shared_ptr< Entity > > workers = entities->entities.getEntities("Worker");
-									for (const std::vector< std::shared_ptr< Entity > >& friendlyVector : {units, workers})
-									{
-										for (std::shared_ptr< Entity > friendly : friendlyVector)
-										{
-											Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
-											Vector3 direction = (Vector3){mousePos.x - friendlyPos.x, mousePos.y - friendlyPos.y, 0.0f};
-											float distance = direction.x * direction.x + direction.y * direction.y;
-											std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
-											if ( distance <= healRadius * healRadius )
-											{
-												std::cout << "healing " << friendly->getTag() << std::endl;
-												CHealth& friendlyHealth = friendly->getComponent< CHealth >();
-												friendlyHealth.hp += healAmount;
-												if ( friendlyHealth.hp > friendlyHealth.max )
-												{
-													friendlyHealth.hp = friendlyHealth.max;
-												}
-											}
-										}
-									}
-									std::shared_ptr< NoMEM::Anim > commandAnim = game->assets->get< NoMEM::Anim >("heal");
-									commandAnim->start = clock->getFrame();
-									commandAnim->end = commandAnim->start + 60;
-								
-									break;
-								}
-							
-								default:
-								{
-									
-									break;
-								}
-							}
+							castSpell(convert2DPos3D(GetMousePosition()), static_cast< SpellType >(currentAction.action));
 						}
 						else if ( TextIsEqual("Swamp", elem->getInner()) )
 						{
@@ -756,15 +794,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					}
 					else
 					{
-						// TODO: seperate into own function
-						std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
-						std::shared_ptr< NoGUI::Element > noManaBar = gui->getPage(Overlay::RESOURCES)->getElements("Mana").back();
-						std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
-						noManaBar->getShape()->fill->col.a = 255;
-						noManaBar->getShape()->outline->fill->col.a = 255;
-						game->sfx->play(game->assets->get< Sound >("nomana.wav"));
-						noManaAnim->start = clock->getFrame();
-						noManaAnim->end = noManaAnim->start + 75;
+						playNoMana();
 					}
 				}
 			}

@@ -35,12 +35,21 @@ public:
 		portalSize = (Vector3){scaleFactorX, scaleFactorY, scaleFactorZ};
 	}
 	std::vector< std::shared_ptr< NoGUI::Element > > getSurrondingCells(std::shared_ptr< NoGUI::Element > centerElem, unsigned int radius=1);
+	void animateUnitSelection();
+	void animateManaBar(unsigned int current, unsigned int start, unsigned int end);
+	void animateSwampCells(unsigned int current, unsigned int frames=75);
 	void animateElements();
+	void animateSpellHeal(unsigned int current, unsigned int start, unsigned int end, Color circleColor=(Color){255, 203, 0, 80}, float radius=100.0f);
+	void animateSpellCommand(unsigned int current, unsigned int start, unsigned int end, Color innerCircleColor=MAROON, Color outerCircleColor=BLACK);
 	void animateSpells();
 	void spawnEntities();
+	void playNoMana();
 	void placeMonument(std::shared_ptr< Tile > tile);
 	void placePortal(std::shared_ptr< Tile > tile);
 	std::vector< std::shared_ptr< NoGUI::Element > > buildMonument(std::shared_ptr< Tile > tile);
+	void castCommand(const Vector3& point, unsigned int animFrames=48);
+	void castHeal(const Vector3& point, float amount=20.0f, float radius=100.0f, unsigned int animFrames=60);
+	void castSpell(const Vector3& point, SpellType spell);
 	void render();
 	void run();
 	void onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent hevent, NoGUI::FocusEvent fevent);

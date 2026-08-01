@@ -649,8 +649,7 @@ void Scene::run()
 	}
 	if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
 	{
-		currentAction.action = 0;
-		currentAction.cast = true;
+		castCommand(convert2DPos3D(GetMousePosition()));
 		gui->closeActions();
 	}
 	else if ( IsKeyPressed(KEY_ESCAPE) )

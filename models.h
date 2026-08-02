@@ -582,7 +582,7 @@ public:
 	float maxMana = 100.0f;
 	float manaGen = 0.05f;
 	size_t workers = 1;
-	size_t maxWorkers = 5;
+	size_t maxWorkers = 1;
 	size_t units = 0;
 	size_t maxUnits = 2;
 	void update() {}

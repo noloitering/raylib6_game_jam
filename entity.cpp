@@ -102,6 +102,36 @@ void EntityManager::setEntities(const std::unordered_map<std::string, EntityVec>
 	}
 }
 
+std::shared_ptr< Entity > EntityManager::spawnEntity(const char* tag, const char* in, const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, float health, float moveSpeed)
+{
+	std::shared_ptr< Entity > entity = addEntity(tag, in);
+	entity->addComponent< CTransform3D >(point, scale, axis, angle);
+	entity->addComponent< CWorker >();
+	entity->addComponent< CHealth >(health, health);
+	entity->addComponent< CMove >(moveSpeed, point);
+	CModel& modelComponent = entity->addComponent< CModel >(model);
+	
+	return entity;
+}
+
+std::shared_ptr< Entity > EntityManager::spawnEnemy(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, const char* in, float health, float moveSpeed)
+{
+	
+	return spawnEntity("Enemy", in, point, model, scale, axis, angle, health, moveSpeed);
+}
+
+std::shared_ptr< Entity > EntityManager::spawnWorker(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, const char* in, float health, float moveSpeed)
+{
+	
+	return spawnEntity("Worker", in, point, model, scale, axis, angle, health, moveSpeed);
+}
+
+std::shared_ptr< Entity > EntityManager::spawnUnit(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, const char* in, float health, float moveSpeed)
+{
+	
+	return spawnEntity("Unit", in, point, model, scale, axis, angle, health, moveSpeed);
+}
+
 std::pair< std::shared_ptr< Entity >, float > getClosestEntity3D(const Vector3& point, std::vector< std::shared_ptr< Entity > > entities)
 {
 	float closestDistance = std::numeric_limits<float>::infinity();

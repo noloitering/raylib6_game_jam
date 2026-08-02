@@ -154,6 +154,31 @@ void Scene::spawnEntities()
 		{
 			if ( spawner.spawnRate > 0 && clock->getFrame() % spawner.spawnRate == 0 )
 			{
+				// 1/25 chance to spawn worker from friendly unit spawner
+				if ( static_cast<int>(spawner.spawn) > static_cast<int>(SpawnType::ENEMY) && GetRandomValue(0, 100) % 25 == 0 )
+				{
+					if ( resources->workers < resources->maxWorkers ) // global workers
+					{
+						// max workers local to spawner
+						bool maxWorkersSpawned = false;
+						int maxWorkers = 3;
+						int currentWorkers = 0;
+						for ( std::shared_ptr< Entity > localWorker : entities->entities.getEntities("Worker") )
+						{
+							CMove& localWorkerMove = localWorker->getComponent< CMove >();
+							Vector3 spawnerPos = entity->getComponent< CTransform3D >().pos;
+							if ( localWorkerMove.home.x == spawnerPos.x && localWorkerMove.home.y == spawnerPos.y )
+							{
+								currentWorkers++;
+							}
+						}
+						if ( currentWorkers < maxWorkers )
+						{
+							entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
+							resources->workers++;
+						}
+					}
+				}
 				switch ( spawner.spawn )
 				{
 					case SpawnType::NONE:
@@ -166,13 +191,7 @@ void Scene::spawnEntities()
 					{
 						if ( spawner.current < spawner.max )
 						{
-							std::shared_ptr< Entity > enemy = entities->entities.addEntity("Enemy", "Human");
-							enemy->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f}, Vector3{0.0f, 1.0f, 0.0f}, 180.0f);
-							enemy->addComponent< CWorker >();
-							enemy->addComponent< CHealth >(100.0f, 100.0f);
-							enemy->addComponent< CMove >(80.0f, entity->getComponent< CTransform3D >().pos);
-							CModel& modelComponent = enemy->addComponent< CModel >();
-							modelComponent.model = game->assets->get< Model >("enemy");
+							entities->entities.spawnEnemy(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("enemy"));
 							spawner.current++;
 						}
 					
@@ -183,13 +202,7 @@ void Scene::spawnEntities()
 					{
 						if ( resources->workers < resources->maxWorkers )
 						{
-							std::shared_ptr< Entity > worker = entities->entities.addEntity("Worker", "Goblin");
-							worker->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{25.0f, 25.0f, 25.0f});
-							worker->addComponent< CWorker >();
-							worker->addComponent< CHealth >(50.0f, 50.0f);
-							worker->addComponent< CMove >(80.0f, entity->getComponent< CTransform3D >().pos);
-							CModel& modelComponent = worker->addComponent< CModel >();
-							modelComponent.model = game->assets->get< Model >("worker");
+							entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
 							resources->workers++;
 						}
 						
@@ -200,13 +213,7 @@ void Scene::spawnEntities()
 					{
 						if ( spawner.current < spawner.max )
 						{
-							std::shared_ptr< Entity > unit = entities->entities.addEntity("Unit", "Werewolf");
-							unit->addComponent< CTransform3D >(entity->getComponent< CTransform3D >().pos, Vector3{20.0f, 20.0f, 20.0f}, Vector3{0.0f, 1.0f, 0.0f}, 0.0f);
-							unit->addComponent< CWorker >();
-							unit->addComponent< CHealth >(100.0f, 100.0f);
-							unit->addComponent< CMove >(100.0f, entity->getComponent< CTransform3D >().pos);
-							CModel& modelComponent = unit->addComponent< CModel >();
-							modelComponent.model = game->assets->get< Model >("werewolf");
+							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("werewolf"));
 							spawner.current++;
 						}
 						
@@ -388,10 +395,9 @@ void Scene::placePortal(std::shared_ptr< Tile > tile)
 	tile->building->getComponent< CSpawner >().max = 2;
 	tile->building->getComponent< CSpawner >().current = 0;
 	tile->building->getComponent< CTown >().owned = false;
-	resources->maxWorkers += 5;
-	std::cout << gui->getPages().size() << std::endl;
+	resources->maxWorkers += 2;
 	gui->getPage(Overlay::UNITS)->setEnabled(true);
-	gui->getPage(Overlay::UNITS)->getElements("Container").front()->setInner(TextFormat("%d", tile->building->getId()));	
+	gui->getPage(Overlay::UNITS)->getElements("Container").front()->setInner(TextFormat("%d", tile->building->getId()));
 }
 
 std::vector< std::shared_ptr< NoGUI::Element > > Scene::buildMonument(std::shared_ptr< Tile > tile)

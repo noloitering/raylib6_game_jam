@@ -222,6 +222,11 @@ void Scene::spawnEntities()
 					
 					case SpawnType::UNDEAD:
 					{
+						if ( spawner.current < spawner.max )
+						{
+							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("zombie"), (Vector3){25.0f, 25.0f, 25.0f}, (Vector3){0.0f, 1.0f, 0.0f}, 0.0f, "Zombie", 300.0f, 35.0f);
+							spawner.current++;
+						}
 						
 						break;
 					}
@@ -749,7 +754,14 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					{
 						if ( entity->getId() == portalID )
 						{
-							entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
+							if ( TextIsEqual("Lycanthropy", elem->getInner()) )
+							{
+								entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
+							}
+							else if ( TextIsEqual("Undeath", elem->getInner()) )
+							{
+								entity->getComponent< CSpawner >().spawn = SpawnType::UNDEAD;
+							}
 						}
 					}
 				}

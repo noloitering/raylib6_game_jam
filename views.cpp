@@ -141,6 +141,56 @@ std::vector< std::shared_ptr< NoGUI::Element > > Scene::getSurrondingCells(std::
 		
 	return surrondingElems;
 }
+void Scene::setPaused(bool pause)
+{
+	if ( state == GameState::RUNNING || state == GameState::PAUSED )
+	{
+		std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+		std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
+		if ( pause )
+		{
+			state = GameState::PAUSED;
+		}
+		else
+		{
+			state = GameState::RUNNING;
+		}
+		clock->setPaused(pause);
+		for ( std::shared_ptr< NoGUI::Page > gridPage : grid->getPages() )
+		{
+			gridPage->setActive(!pause);
+		}
+	}
+}
+
+void Scene::togglePause()
+{
+	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
+	switch (state)
+	{
+		case GameState::RUNNING:
+		{
+			setPaused(true);
+			gui->getPage(Overlay::PAUSE)->enable();
+			
+			break;
+		}
+		
+		case GameState::PAUSED:
+		{
+			setPaused(false);
+			gui->getPage(Overlay::PAUSE)->disable();
+			
+			break;
+		}
+			
+		default:
+		{
+			
+			break;
+		}
+	}
+}
 
 void Scene::spawnEntities()
 {
@@ -403,6 +453,7 @@ void Scene::placePortal(std::shared_ptr< Tile > tile)
 	resources->maxWorkers += 2;
 	gui->getPage(Overlay::UNITS)->setEnabled(true);
 	gui->getPage(Overlay::UNITS)->getElements("Container").front()->setInner(TextFormat("%d", tile->building->getId()));
+	setPaused(true);
 }
 
 std::vector< std::shared_ptr< NoGUI::Element > > Scene::buildMonument(std::shared_ptr< Tile > tile)
@@ -546,6 +597,9 @@ void Scene::run()
 		// spawning
 		spawnEntities();
 		// movement
+		entities->updateState();
+		entities->updateMovement();
+		entities->updateDamage();
 		// TODO: probably could be handled in the entity system
 		for (std::shared_ptr< Entity > worker : entities->entities.getEntities("Worker"))
 		{
@@ -633,30 +687,7 @@ void Scene::run()
 	// controls
 	if ( IsKeyPressed(KEY_P) )
 	{
-		switch (state)
-		{
-			case GameState::RUNNING:
-			{
-				clock->setPaused(true);
-				state = GameState::PAUSED;
-				
-				break;
-			}
-			
-			case GameState::PAUSED:
-			{
-				clock->setPaused(false);
-				state = GameState::RUNNING;
-				
-				break;
-			}
-				
-			default:
-			{
-				
-				break;
-			}
-		}
+		togglePause();
 	}
 	if ( IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) )
 	{
@@ -745,6 +776,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					std::shared_ptr< NoGUI::Manager > gui = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GUI));
 					std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
 					std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+					setPaused(false);
 					unitSelectionProgress = 0.0f;
 					unitSlider->slideTo(0.0f);
 					gui->getPage(Overlay::UNITS)->setEnabled(false);

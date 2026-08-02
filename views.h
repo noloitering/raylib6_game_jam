@@ -17,6 +17,7 @@ private:
 	const unsigned int unitSelectionTime = 1200; // in milliseconds
 protected:
 	void setVictory(bool win);
+	void setPaused(bool pause);
 public:
 	Camera camera = { 0 };
 	Action currentAction;
@@ -35,6 +36,7 @@ public:
 		portalSize = (Vector3){scaleFactorX, scaleFactorY, scaleFactorZ};
 	}
 	std::vector< std::shared_ptr< NoGUI::Element > > getSurrondingCells(std::shared_ptr< NoGUI::Element > centerElem, unsigned int radius=1);
+	void togglePause();
 	void animateUnitSelection();
 	void animateManaBar(unsigned int current, unsigned int start, unsigned int end);
 	void animateSwampCells(unsigned int current, unsigned int frames=75);

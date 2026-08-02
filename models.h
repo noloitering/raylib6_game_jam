@@ -155,7 +155,7 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, VICTORY=6};
+	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, PAUSE=6, VICTORY=7};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
@@ -284,15 +284,26 @@ public:
 		lycanthropySlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
 		undeathSlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
 	}
+	void addPausePage()
+	{
+		std::shared_ptr< NoGUI::Page > pausePage = addPage(false);
+		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(GRAY);
+		std::shared_ptr< NoGUI::CContainer > labelComponents = pausePage->addComponents("Label");
+		labelComponents->addComponent< NoGUI::CText >(textFill, nullptr, 50.0f);
+		Vector2 messageRadius = (Vector2){360.0f, 50.0f};
+		Vector2 messagePos = (Vector2){360.f, 360.0f};
+		NoGUI::Transform messageTransform = NoGUI::Transform(messagePos, messageRadius);
+		pausePage->addElement< NoGUI::Element >(invisShape, messageTransform, "Label", "Paused");
+	}
 	void addVictoryPage()
 	{
 		std::shared_ptr< NoGUI::Page > victoryPage = addPage(false);
+//		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
 		std::shared_ptr< NoGUI::Fill > messageFill = std::make_shared< NoGUI::Fill >((Color){255, 0, 110, 255});
-		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
 		std::shared_ptr< NoGUI::CContainer > labelComponents = victoryPage->addComponents("Label");
 		labelComponents->addComponent< NoGUI::CText >(messageFill, nullptr, 40.0f);
 		std::shared_ptr< NoGUI::CContainer > restartComponents = victoryPage->addComponents("Restart");
-		restartComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		restartComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
 		Vector2 messageRadius = (Vector2){360.0f, 50.0f};
 		Vector2 buttonRadius = (Vector2){150.0f, 30.0f};
 		NoGUI::Transform messageTransform = NoGUI::Transform((Vector2){360.0f, 300.0f}, messageRadius);
@@ -315,6 +326,7 @@ public:
 		addBuildPage();
 		addSpellPage();
 		addUnitPage();
+		addPausePage();
 		addVictoryPage();
 	}
 };
@@ -554,9 +566,6 @@ public:
 	virtual void update()
 	{
 		entities.update();
-		updateState();
-		updateMovement();
-		updateDamage();
 	}
 	
 	virtual void render()

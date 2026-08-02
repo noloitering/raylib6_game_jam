@@ -15,6 +15,8 @@ enum class BuildingState {CONSTRUCTION=0, BUILT=1, ACTIVE=2};
 enum class WorkerState {ROAM=0, WALK=1, HEAL=2};
 enum class SpawnType {NONE=0, WORKER=1, ENEMY=2, LYCANTHROPE=3, UNDEAD=4};
 
+class Entity;
+
 class CInterface
 {
 public:
@@ -90,9 +92,10 @@ public:
 class CWorker : public CInterface
 {
 public:
-	CWorker(WorkerState working=WorkerState::ROAM)
+	CWorker(WorkerState working=WorkerState::ROAM, std::shared_ptr< Entity > enemy=nullptr)
 		: state(working) {}
 	WorkerState state = WorkerState::ROAM;
+	std::shared_ptr< Entity > target = nullptr;
 };
 
 class CMove : public CInterface

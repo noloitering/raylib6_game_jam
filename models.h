@@ -325,29 +325,13 @@ public:
 	EntitySystem() {}
 	virtual ~EntitySystem() {}
 	EntityManager entities;
-	void updateState()
+	void updateStateEnemy(const std::vector< std::shared_ptr< Entity > >& enemies, const std::vector< std::shared_ptr< Entity > >& buildings, const std::vector< std::shared_ptr< Entity > >& workers, const std::vector< std::shared_ptr< Entity > >& units)
 	{
-		std::vector< std::shared_ptr< Entity > > buildings = entities.getEntities("Building");
-		std::vector< std::shared_ptr< Entity > > workers = entities.getEntities("Worker");
-		std::vector< std::shared_ptr< Entity > > units = entities.getEntities("Unit");
-		std::vector< std::shared_ptr< Entity > > enemies = entities.getEntities("Enemy");
-		std::vector< std::shared_ptr< Entity > > damagedMonuments;
-		for ( std::shared_ptr< Entity > building : buildings )
-		{
-			if ( building->getComponent< CBuilding >().type == BuildingType::MONUMENT )
-			{
-				CHealth& buildingHP = building->getComponent< CHealth >();
-				if ( buildingHP.hp < buildingHP.max )
-				{
-					damagedMonuments.push_back(building);
-				}
-			}
-		}
-		// enemy movement
 		for ( std::shared_ptr< Entity > enemy : enemies )
 		{
 			CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
 			CMove& enemyMove = enemy->getComponent< CMove >();
+			CWorker& enemyAI = enemy->getComponent< CWorker >();
 			auto [closestEntity, closestEntityDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, buildings);
 			auto [closestWorker, closestWorkerDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, workers);
 			auto [closestUnit, closestUnitDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, units);
@@ -368,51 +352,58 @@ public:
 			}
 			if ( closestEntityDistance <= meleeDistance )
 			{
-				enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = enemyTransform.pos;
-				closestEntity->getComponent< CHealth >().hp -= 0.25f;
+				enemyAI.target = closestEntity;
 			}
 			else if ( closestEntityDistance <= detectionDistance )
 			{
-				enemy->getComponent< CWorker >().state = WorkerState::HEAL;
+				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = closestEntity->getComponent< CTransform3D >().pos;
+				enemyAI.target = closestEntity;
 			}
 			else
 			{
-				enemy->getComponent< CWorker >().state = WorkerState::ROAM;
+				enemyAI.state = WorkerState::ROAM;
+				enemyAI.target = nullptr;
 			}
 		}
-		// worker movement
+	}
+	
+	void updateStateWorker(const std::vector< std::shared_ptr< Entity > >& workers, const std::vector< std::shared_ptr< Entity > >& buildings)
+	{
+		std::vector< std::shared_ptr< Entity > > damagedBuildings;
+		for ( std::shared_ptr< Entity > building : buildings )
+		{
+			CHealth& buildingHP = building->getComponent< CHealth >();
+			if ( buildingHP.hp < buildingHP.max )
+			{
+				damagedBuildings.push_back(building);
+			}
+		}
 		for (std::shared_ptr< Entity > worker : workers)
 		{
 			CTransform3D& workerTransform = worker->getComponent< CTransform3D >();
 			CMove& workerMove = worker->getComponent< CMove >();
 			CHealth& workerHealth = worker->getComponent< CHealth >();
+			CWorker& workerAI = worker->getComponent< CWorker >();
 			bool isFullHealth = workerHealth.hp >= workerHealth.max;
 			float maxProximity = 30.0f;
-			worker->getComponent< CWorker >().state = WorkerState::ROAM;
-			if ( isFullHealth && damagedMonuments.size() )
+			workerAI.state = WorkerState::ROAM;
+			workerAI.target = nullptr;
+			if ( isFullHealth && damagedBuildings.size() )
 			{
-				auto [closestMonument, closestMonumentDistance] = getClosestEntity3D(workerTransform.pos, damagedMonuments);
+				auto [closestMonument, closestMonumentDistance] = getClosestEntity3D(workerTransform.pos, damagedBuildings);
 				if ( closestMonumentDistance < maxProximity )
 				{
-					worker->getComponent< CWorker >().state = WorkerState::HEAL;
+					workerAI.state = WorkerState::HEAL;
 					workerMove.target = workerTransform.pos;
-					CHealth& monumentHealth = closestMonument->getComponent< CHealth >();
-					monumentHealth.hp += 0.25f;
-					if ( monumentHealth.hp >= monumentHealth.max )
-					{
-						monumentHealth.hp = monumentHealth.max;
-						CBuilding& monumentBuilding = closestMonument->getComponent< CBuilding >();
-						if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
-						{
-							notify(closestMonument, EntityEvent::BUILD);
-						}
-					}
+					workerAI.target = closestMonument;
 				}
 				else
 				{
 					workerMove.target = closestMonument->getComponent< CTransform3D >().pos;
+					workerAI.target = closestMonument;
 				}
 			}
 			else
@@ -421,39 +412,56 @@ public:
 				float distance = direction.x * direction.x + direction.y * direction.y;
 				if ( distance > maxProximity * maxProximity )
 				{
-					worker->getComponent< CWorker >().state = WorkerState::WALK;
+					workerAI.state = WorkerState::WALK;
 					workerMove.target = workerMove.home;
 				}
 			}
 		}
-		// friendly unit movement
+	}
+	
+	void updateStateUnit(const std::vector< std::shared_ptr< Entity > >& units, const std::vector< std::shared_ptr< Entity > >& enemies)
+	{
 		for (std::shared_ptr< Entity > unit : units)
 		{
 			CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
 			CMove& unitMove = unit->getComponent< CMove >();
+			CWorker& unitAI = unit->getComponent< CWorker >();
 			float detectionDistance = 100.0f;
 			float meleeDistance = 30.0f;
 			auto [closestEnemy, closestEnemyDistance] = getClosestEntity3D(unit->getComponent< CTransform3D >().pos, enemies);
-			if ( closestEnemyDistance <= detectionDistance && unit->getComponent< CWorker >().state != WorkerState::WALK )
+			if ( closestEnemyDistance <= detectionDistance && unitAI.state != WorkerState::WALK )
 			{
+				unitAI.target = closestEnemy;
 				if ( closestEnemyDistance <= meleeDistance )
 				{
-					unit->getComponent< CWorker >().state = WorkerState::HEAL;
+					unitAI.state = WorkerState::HEAL;
 					unitMove.target = unitTransform.pos;
-					closestEnemy->getComponent< CHealth >().hp -= 0.25f;
 				}
 				else
 				{
-					unit->getComponent< CWorker >().state = WorkerState::HEAL;
+					unitAI.state = WorkerState::HEAL;
 					unitMove.target = closestEnemy->getComponent< CTransform3D >().pos;
 				}
 			}
 			else if ( unitTransform.pos.x == unitMove.target.x && unitTransform.pos.y == unitMove.target.y )
 			{
-				unit->getComponent< CWorker >().state = WorkerState::ROAM;
+				unitAI.state = WorkerState::ROAM;
+				unitAI.target = nullptr;
 			}
 		}
 	}
+	
+	void updateState()
+	{
+		std::vector< std::shared_ptr< Entity > > buildings = entities.getEntities("Building");
+		std::vector< std::shared_ptr< Entity > > workers = entities.getEntities("Worker");
+		std::vector< std::shared_ptr< Entity > > units = entities.getEntities("Unit");
+		std::vector< std::shared_ptr< Entity > > enemies = entities.getEntities("Enemy");
+		updateStateEnemy(enemies, buildings, workers, units);
+		updateStateWorker(workers, buildings);
+		updateStateUnit(units, enemies);
+	}
+	
 	void updateMovement()
 	{
 		for (std::shared_ptr< Entity > entity : entities.getEntities())
@@ -497,10 +505,41 @@ public:
 			}
 		}
 	}
+	
 	void updateDamage()
 	{
 		for ( std::shared_ptr< Entity > entity : entities.getEntities() )
 		{
+			if ( entity->hasComponent< CWorker >() && entity->getComponent< CWorker >().state == WorkerState::HEAL )
+			{
+				const Vector3& entityPos = entity->getComponent< CTransform3D >().pos;
+				const Vector3& targetPos = entity->getComponent< CMove >().target;
+				float meleeDistance = 30.0f; 
+				Vector3 direction = (Vector3){targetPos.x - entityPos.x, targetPos.y - entityPos.y, 0.0f};
+				float distance = direction.x * direction.x + direction.y * direction.y;
+				if ( distance <= meleeDistance )
+				{
+					std::shared_ptr< Entity > target = entity->getComponent< CWorker >().target;
+					CHealth& targetHealth = target->getComponent< CHealth >();
+					if ( TextIsEqual("Worker", entity->getTag()) )
+					{
+						targetHealth.hp += 0.25f;
+						if ( targetHealth.hp >= targetHealth.max )
+						{
+							targetHealth.hp = targetHealth.max;
+							CBuilding& monumentBuilding = target->getComponent< CBuilding >();
+							if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
+							{
+								notify(target, EntityEvent::BUILD);
+							}
+						}
+					}
+					else
+					{
+						targetHealth.hp -= 0.25f;
+					}
+				}
+			}
 			CHealth& health = entity->getComponent< CHealth >();
 			if ( health.owned )
 			{
@@ -511,6 +550,7 @@ public:
 			}
 		}
 	}
+	
 	virtual void update()
 	{
 		entities.update();

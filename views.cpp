@@ -757,10 +757,12 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 							if ( TextIsEqual("Lycanthropy", elem->getInner()) )
 							{
 								entity->getComponent< CSpawner >().spawn = SpawnType::LYCANTHROPE;
+								entity->getComponent< CSpawner >().current = 0;
 							}
 							else if ( TextIsEqual("Undeath", elem->getInner()) )
 							{
 								entity->getComponent< CSpawner >().spawn = SpawnType::UNDEAD;
+								entity->getComponent< CSpawner >().current = 0;
 							}
 						}
 					}

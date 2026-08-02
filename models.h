@@ -325,10 +325,8 @@ public:
 	EntitySystem() {}
 	virtual ~EntitySystem() {}
 	EntityManager entities;
-	virtual void update()
+	void updateState()
 	{
-		entities.update();
-		// state
 		std::vector< std::shared_ptr< Entity > > buildings = entities.getEntities("Building");
 		std::vector< std::shared_ptr< Entity > > workers = entities.getEntities("Worker");
 		std::vector< std::shared_ptr< Entity > > units = entities.getEntities("Unit");
@@ -455,6 +453,9 @@ public:
 				unit->getComponent< CWorker >().state = WorkerState::ROAM;
 			}
 		}
+	}
+	void updateMovement()
+	{
 		for (std::shared_ptr< Entity > entity : entities.getEntities())
 		{
 			// movement
@@ -494,7 +495,12 @@ public:
 					}
 				}
 			}
-			// death
+		}
+	}
+	void updateDamage()
+	{
+		for ( std::shared_ptr< Entity > entity : entities.getEntities() )
+		{
 			CHealth& health = entity->getComponent< CHealth >();
 			if ( health.owned )
 			{
@@ -504,6 +510,13 @@ public:
 				}
 			}
 		}
+	}
+	virtual void update()
+	{
+		entities.update();
+		updateState();
+		updateMovement();
+		updateDamage();
 	}
 	
 	virtual void render()

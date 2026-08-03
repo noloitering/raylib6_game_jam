@@ -516,10 +516,8 @@ void Scene::castHeal(const Vector3& point, float amount, float radius, unsigned 
 			Vector3 friendlyPos = friendly->getComponent< CTransform3D >().pos;
 			Vector3 direction = (Vector3){point.x - friendlyPos.x, point.y - friendlyPos.y, 0.0f};
 			float distance = direction.x * direction.x + direction.y * direction.y;
-			std::cout << friendly->getTag() << " distance from heal: " << std::sqrt(distance) << std::endl;
 			if ( distance <= radius * radius )
 			{
-				std::cout << "healing " << friendly->getTag() << std::endl;
 				CHealth& friendlyHealth = friendly->getComponent< CHealth >();
 				friendlyHealth.hp += amount;
 				if ( friendlyHealth.hp > friendlyHealth.max )
@@ -714,6 +712,17 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				// grid->getPage(GameGrid::GRID)->setActive(false);
 			// }
 			
+			std::unordered_map< size_t, const char* >::const_iterator tipIt = gui->tips.find(elem->getId());
+			if ( tipIt != gui->tips.end() )
+			{
+				std::shared_ptr< NoGUI::Page > toolTipPage = gui->getPage(Overlay::TIPS);
+				toolTipPage->setVisible(true);
+				std::shared_ptr< NoGUI::Element > toolTip = toolTipPage->getElements("Tip").front();
+				toolTip->setInner(tipIt->second);
+				toolTip->repos(GetMousePosition());
+				gui->resizeTextBox(toolTip, toolTip->radius.x, toolTip->components->getComponent< NoGUI::CTextBox >().size);
+			}
+			
 			break;
 		}
 		
@@ -730,6 +739,11 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				// std::shared_ptr< NoGUI::Manager > grid = dynamic_pointer_cast< NoGUI::Manager >(getModel((size_t)GameModels::GRID));
 				// grid->getPage(GameGrid::GRID)->setActive(true);
 			// }
+			
+			if ( gui->tips.count(elem->getId()) )
+			{
+				gui->getPage(Overlay::TIPS)->setVisible(false);
+			}
 			
 			break;
 		}
@@ -755,6 +769,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 			else if ( TextIsEqual("Unit", elem->getTag()) )
 			{
 				unitSelectionProgress = 0.0f;
+				gui->getPage(Overlay::TIPS)->setVisible(false);
 			}
 
 			break;
@@ -852,7 +867,6 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 			}
 			else if ( TextIsEqual("Building", elem->getTag()) )
 			{
-				std::cout << "mouse released on building" << std::endl;
 				gui->closeActions();
 				if ( TextIsEqual("Monument", elem->getInner()) )
 				{
@@ -862,7 +876,6 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 			}
 			else if ( TextIsEqual("Spell", elem->getTag()) )
 			{
-				std::cout << "mouse released on spell" << std::endl;
 				gui->closeActions();
 				if ( TextIsEqual("Command", elem->getInner()) )
 				{

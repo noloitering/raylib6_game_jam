@@ -155,7 +155,7 @@ public:
 class Overlay : public NoGUI::Manager, public NoMVC::Model
 {
 public:
-	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, PAUSE=6, VICTORY=7};
+	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, TIPS=6, PAUSE=7, VICTORY=8};
 	// fills
 	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
 	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
@@ -163,6 +163,7 @@ public:
 	std::shared_ptr< NoGUI::Fill > manaBarFill = std::make_shared< NoGUI::Fill >(VIOLET);
 	std::shared_ptr< NoGUI::Fill > noManaFill = std::make_shared< NoGUI::Fill >(MAROON);
 	std::shared_ptr< NoGUI::Fill > blackTextFill = std::make_shared< NoGUI::Fill >(BLACK);
+	std::shared_ptr< NoGUI::Fill > toolTipFill = std::make_shared< NoGUI::Fill >((Color){0, 0, 0, 200});
 	// outlines
 	std::shared_ptr< NoGUI::Fill > noManaOutlineFill = std::make_shared< NoGUI::Fill >(RED);
 	std::shared_ptr< NoGUI::Fill > tabOutlineFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
@@ -170,13 +171,16 @@ public:
 	std::shared_ptr< NoGUI::Outline > noManaOutline = std::make_shared< NoGUI::Outline >(noManaOutlineFill, 2);
 	// shapes
 	std::shared_ptr< NoGUI::nShape > containerShape = std::make_shared< NoGUI::nShape >(4, containerFill, tabOutline);
-	std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
 	std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
 	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
 	std::shared_ptr< NoGUI::nShape > unitShape = std::make_shared< NoGUI::nShape >(4, invis, tabOutline);
+	std::shared_ptr< NoGUI::nShape > toolTipShape = std::make_shared< NoGUI::nShape >(4, toolTipFill, tabOutline);
 	std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
+	std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
 	// transforms
 	NoGUI::Transform actionContainerTransform;
+	// toolTips
+	std::unordered_map< size_t, const char* > tips;
 	Overlay()
 		: NoGUI::Manager(false) {}
 
@@ -265,11 +269,11 @@ public:
 	void addUnitPage()
 	{
 		std::shared_ptr< NoGUI::Page > unitPage = addPage(false);
-		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
+//		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(BLACK);
 		std::shared_ptr< NoGUI::CContainer > unitComponents = unitPage->addComponents("Unit");
-		unitComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		unitComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
 		std::shared_ptr< NoGUI::CContainer > labelComponents = unitPage->addComponents("Label");
-		labelComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		labelComponents->addComponent< NoGUI::CText >(blackTextFill, nullptr, 20.0f);
 		Vector2 containerRadius = (Vector2){180, 250};
 		Vector2 labelRadius = (Vector2){150, 30};
 		Vector2 unitRadius = (Vector2){100, 35};
@@ -283,6 +287,18 @@ public:
 		std::shared_ptr< NoGUI::Slider > undeathSlider = unitPage->addElement< NoGUI::Slider >(unitShape, undeathTransform, "Unit", "Undeath");
 		lycanthropySlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
 		undeathSlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
+		tips[lycanthropySlider->getId()] = "A Fast Moving Melee Striker Unit";
+		tips[undeathSlider->getId()] = "A Slow Tanky Hard Hitting Melee Bruiser";
+	}
+	void addToolTips()
+	{
+		std::shared_ptr< NoGUI::Page > toolTips = addPage(false);
+		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(RAYWHITE);
+		std::shared_ptr< NoGUI::CContainer > tipComponents = toolTips->addComponents("Tip");
+		Vector2 toolTipRadius = (Vector2){100, 9.0f};
+		tipComponents->addComponent< NoGUI::CTextBox >(textFill, nullptr, 18.0f, NoGUI::Align(-1, -1), true);
+		NoGUI::Transform tipTransform = NoGUI::Transform((Vector2){0.0f, 0.0f}, toolTipRadius, NoGUI::Align(-1, -1));
+		toolTips->addElement< NoGUI::Element >(toolTipShape, tipTransform, "Tip", "");
 	}
 	void addPausePage()
 	{
@@ -318,6 +334,22 @@ public:
 		getPage(Overlay::SPELLS)->setEnabled(false);
 		getPage(Overlay::TABS)->setEnabled(true);
 	}
+	void resizeTextBox(std::shared_ptr< NoGUI::Element > textBox, float radiusX, float fontSize)
+	{
+		float fontHalfSize = fontSize / 2;
+		textBox->radius = (Vector2){radiusX, fontHalfSize};
+		std::vector< std::tuple< const char*, float, unsigned int > > wrappedContents = NoGUI::WrapText(textBox->getInner(), GetFontDefault(), fontSize, textBox->components->getComponent< NoGUI::CTextBox >().spacing.x, *(textBox));
+		if ( wrappedContents.size() > 1 )
+		{
+//			float increment = gui->msgSize / 2;
+			for (size_t i=1; i < wrappedContents.size(); i++)
+			{
+				textBox->radius.y += fontHalfSize;
+				//gui->msgTransform.translate(0, gui->msgSize);
+//				gui->msgTransform.translate(0, gui->msgHalfSize);
+			}
+		}
+	}
 	void initialize()
 	{
 		addResourcePage();
@@ -326,6 +358,7 @@ public:
 		addBuildPage();
 		addSpellPage();
 		addUnitPage();
+		addToolTips();
 		addPausePage();
 		addVictoryPage();
 	}

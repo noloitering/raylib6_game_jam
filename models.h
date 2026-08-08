@@ -180,7 +180,29 @@ public:
 	// transforms
 	NoGUI::Transform actionContainerTransform;
 	// toolTips
-	std::unordered_map< size_t, const char* > tips;
+	// TODO: make this case-insensitive
+	size_t static constexpr toolTipHasher(const char* key)
+	{
+		size_t hash = 0;
+		const size_t primeNumber = 31;
+		while (*key != '\0')
+		{
+			hash = hash * primeNumber + static_cast< size_t >(*key);
+			key++;
+		}
+		
+		return hash;
+	}
+	std::unordered_map< const char*, const char*,  size_t(*)(const char*), bool(*)(const char*, const char*) > tips
+	{
+		{
+			{"Lycanthropy", "A Fast Moving Melee Striker Unit"}, 
+			{"Undeath", "A Slow Tanky Hard Hitting Melee Bruiser"}
+		},
+		2,
+		toolTipHasher, 
+		TextIsEqual, 
+	};
 	Overlay()
 		: NoGUI::Manager(false) {}
 
@@ -263,8 +285,10 @@ public:
 		Vector2 spellRadius = (Vector2){80.0f, 60.0f};
 		NoGUI::Transform spell0Transform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, spellRadius.y + 20.0f}, spellRadius);
 		NoGUI::Transform spell1Transform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, spellRadius.y * 3 + 20.0f * 2}, spellRadius);
+		NoGUI::Transform spell2Transform = NoGUI::Transform((Vector2){actionContainerTransform.position.x, spellRadius.y * 5 + 20.0f * 3}, spellRadius);
 		spellsPage->addElement< NoGUI::Button >(tabShape, spell0Transform, "Spell", "Command");
 		spellsPage->addElement< NoGUI::Button >(tabShape, spell1Transform, "Spell", "Heal");
+		spellsPage->addElement< NoGUI::Button >(tabShape, spell2Transform, "Spell", "Summon Goblin");
 	}
 	void addUnitPage()
 	{
@@ -287,8 +311,8 @@ public:
 		std::shared_ptr< NoGUI::Slider > undeathSlider = unitPage->addElement< NoGUI::Slider >(unitShape, undeathTransform, "Unit", "Undeath");
 		lycanthropySlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
 		undeathSlider->setSlide(manaBarShape, NoGUI::Align(-1, 0));
-		tips[lycanthropySlider->getId()] = "A Fast Moving Melee Striker Unit";
-		tips[undeathSlider->getId()] = "A Slow Tanky Hard Hitting Melee Bruiser";
+//		tips[lycanthropySlider->getId()] = "A Fast Moving Melee Striker Unit";
+//		tips[undeathSlider->getId()] = "A Slow Tanky Hard Hitting Melee Bruiser";
 	}
 	void addToolTips()
 	{

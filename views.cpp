@@ -533,6 +533,38 @@ void Scene::castHeal(const Vector3& point, float amount, float radius, unsigned 
 	commandAnim->end = commandAnim->start + animFrames;
 }
 
+void Scene::castSummon(const Vector3& point, SpawnType creature)
+{
+	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
+	std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+	switch (creature)
+	{
+		case SpawnType::WORKER:
+		{
+			std::shared_ptr< Entity > worker = entities->entities.spawnWorker(point, game->assets->get< Model >("worker"));
+			resources->workers++;
+			std::vector< std::shared_ptr< Entity > > portals;
+			for (std::shared_ptr< Entity > spawner : entities->entities.getEntities("Town"))
+			{
+				if ( spawner->getComponent< CSpawner >().spawn != SpawnType::ENEMY  )
+				{
+					portals.push_back(spawner);
+				}
+			}
+			std::shared_ptr< Entity > homePortal = getClosestEntity3D(point, portals).first;
+			worker->getComponent< CMove >().home = homePortal->getComponent< CTransform3D >().pos;
+			
+			break;
+		}
+		
+		default:
+		{
+			
+			break;
+		}
+	}
+}
+
 void Scene::castSpell(const Vector3& point, SpellType spell)
 {
 	switch ( spell )
@@ -548,6 +580,13 @@ void Scene::castSpell(const Vector3& point, SpellType spell)
 		{
 			castHeal(convert2DPos3D(GetMousePosition()));
 		
+			break;
+		}
+		
+		case SpellType::SUMMONGOBLIN:
+		{
+			castSummon(convert2DPos3D(GetMousePosition()), SpawnType::WORKER);
+			
 			break;
 		}
 	
@@ -712,7 +751,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				// grid->getPage(GameGrid::GRID)->setActive(false);
 			// }
 			
-			std::unordered_map< size_t, const char* >::const_iterator tipIt = gui->tips.find(elem->getId());
+			std::unordered_map< const char*, const char* >::const_iterator tipIt = gui->tips.find(elem->getInner());
 			if ( tipIt != gui->tips.end() )
 			{
 				std::shared_ptr< NoGUI::Page > toolTipPage = gui->getPage(Overlay::TIPS);
@@ -740,7 +779,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				// grid->getPage(GameGrid::GRID)->setActive(true);
 			// }
 			
-			if ( gui->tips.count(elem->getId()) )
+			if ( gui->tips.count(elem->getInner()) )
 			{
 				gui->getPage(Overlay::TIPS)->setVisible(false);
 			}
@@ -835,15 +874,19 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					{
 						if ( currentAction.cast && !TextIsEqual("Mountain", elem->getInner()) )
 						{
-							resources->mana -= manaCost;
-							castSpell(convert2DPos3D(GetMousePosition()), static_cast< SpellType >(currentAction.action));
+							// TODO: add some kind of feedback if already at the maximum amount of workers
+							if ( currentAction.action != static_cast< int >(SpellType::SUMMONGOBLIN) || resources->workers < resources->maxWorkers )
+							{
+								resources->mana -= manaCost;
+								castSpell(convert2DPos3D(GetMousePosition()), static_cast< SpellType >(currentAction.action));
+							}
 						}
 						else if ( TextIsEqual("Swamp", elem->getInner()) )
 						{
 							resources->mana -= manaCost;
 							switch ( currentAction.action )
 							{
-								case static_cast<int>(BuildingType::MONUMENT): // hate this fucking syntax try to give actions their own namespace and got duplicate of NONE error KMS
+								case static_cast< int >(BuildingType::MONUMENT): // hate this fucking syntax try to give actions their own namespace and got duplicate of NONE error KMS
 								{
 									std::shared_ptr< Tile > tile = dynamic_pointer_cast< Tile >(elem);
 									placeMonument(tile);
@@ -885,6 +928,11 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				else if ( TextIsEqual("Heal", elem->getInner()) )
 				{
 					currentAction.action = static_cast<int>(SpellType::HEAL);
+					currentAction.cast = true;
+				}
+				else if ( TextIsEqual("Summon Goblin", elem->getInner()) )
+				{
+					currentAction.action = static_cast<int>(SpellType::SUMMONGOBLIN);
 					currentAction.cast = true;
 				}
 			}

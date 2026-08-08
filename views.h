@@ -51,6 +51,7 @@ public:
 	std::vector< std::shared_ptr< NoGUI::Element > > buildMonument(std::shared_ptr< Tile > tile);
 	void castCommand(const Vector3& point, unsigned int animFrames=48);
 	void castHeal(const Vector3& point, float amount=20.0f, float radius=100.0f, unsigned int animFrames=60);
+	void castSummon(const Vector3& point, SpawnType creature);
 	void castSpell(const Vector3& point, SpellType spell);
 	void render();
 	void run();

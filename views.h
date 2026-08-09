@@ -46,6 +46,7 @@ public:
 	void animateSpells();
 	void spawnEntities();
 	void playNoMana();
+	void playFullPortal();
 	void placeMonument(std::shared_ptr< Tile > tile);
 	void placePortal(std::shared_ptr< Tile > tile);
 	std::vector< std::shared_ptr< NoGUI::Element > > buildMonument(std::shared_ptr< Tile > tile);

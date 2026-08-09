@@ -34,6 +34,7 @@ int main()
 	game.addModel(GUIModel);
 	game.addModel(entityModel);
 	game.assets->addSound("nomana.wav", "./assets/nomana.wav");
+	game.assets->addSound("fullportal.wav", "./assets/fullportal.wav");
 	game.assets->addModel("worker", "./assets/character-orc.glb");
 	game.assets->addModel("enemy", "./assets/character-human.glb");
 	game.assets->addModel("werewolf", "./assets/werewolf.glb");

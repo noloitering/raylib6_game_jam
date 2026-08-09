@@ -607,6 +607,15 @@ void Scene::playNoMana()
 	noManaAnim->end = noManaAnim->start + 75;
 }
 
+void Scene::playFullPortal()
+{
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
+	std::shared_ptr< NoMEM::Anim > noManaAnim = game->assets->get< NoMEM::Anim >("nomana");
+	game->sfx->play(game->assets->get< Sound >("fullportal.wav"));
+	noManaAnim->start = clock->getFrame();
+	noManaAnim->end = noManaAnim->start + 75;
+}
+
 void Scene::render() 
 {
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
@@ -880,6 +889,11 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 								resources->mana -= manaCost;
 								castSpell(convert2DPos3D(GetMousePosition()), static_cast< SpellType >(currentAction.action));
 							}
+							else
+							{
+								playFullPortal();
+							}
+							
 						}
 						else if ( TextIsEqual("Swamp", elem->getInner()) )
 						{

@@ -200,88 +200,84 @@ void Scene::spawnEntities()
 	for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
 	{
 		CSpawner& spawner = entity->getComponent< CSpawner >();
-		if ( spawner.owned )
+		if ( spawner.owned &&  spawner.spawnRate > 0 )
 		{
-			if ( spawner.spawnRate > 0 && clock->getFrame() % spawner.spawnRate == 0 )
+			if ( spawner.current < spawner.max )
 			{
-				// 1/25 chance to spawn worker from friendly unit spawner
-				if ( static_cast<int>(spawner.spawn) > static_cast<int>(SpawnType::ENEMY) && GetRandomValue(0, 100) % 25 == 0 )
+				if ( clock->getFrame() > spawner.spawnRate + spawner.lastSpawn )
 				{
-					if ( resources->workers < resources->maxWorkers ) // global workers
+					// 1/5 chance to spawn worker from friendly unit spawner
+					if ( static_cast<int>(spawner.spawn) > static_cast<int>(SpawnType::ENEMY) && GetRandomValue(1, 100) % 5 == 0 )
 					{
-						// max workers local to spawner
-						bool maxWorkersSpawned = false;
-						int maxWorkers = 3;
-						int currentWorkers = 0;
-						for ( std::shared_ptr< Entity > localWorker : entities->entities.getEntities("Worker") )
+						if ( resources->workers < resources->maxWorkers ) // global workers
 						{
-							CMove& localWorkerMove = localWorker->getComponent< CMove >();
-							Vector3 spawnerPos = entity->getComponent< CTransform3D >().pos;
-							if ( localWorkerMove.home.x == spawnerPos.x && localWorkerMove.home.y == spawnerPos.y )
+							// max workers local to spawner
+							bool maxWorkersSpawned = false;
+							int maxWorkers = 3;
+							int currentWorkers = 0;
+							for ( std::shared_ptr< Entity > localWorker : entities->entities.getEntities("Worker") )
 							{
-								currentWorkers++;
+								CMove& localWorkerMove = localWorker->getComponent< CMove >();
+								Vector3 spawnerPos = entity->getComponent< CTransform3D >().pos;
+								if ( localWorkerMove.home.x == spawnerPos.x && localWorkerMove.home.y == spawnerPos.y )
+								{
+									currentWorkers++;
+								}
+							}
+							if ( currentWorkers < maxWorkers )
+							{
+								entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
+								resources->workers++;
 							}
 						}
-						if ( currentWorkers < maxWorkers )
+					}
+					switch ( spawner.spawn )
+					{
+						case SpawnType::NONE:
 						{
-							entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
-							resources->workers++;
-						}
-					}
-				}
-				switch ( spawner.spawn )
-				{
-					case SpawnType::NONE:
-					{
 						
-						break;
-					}
+							break;
+						}
 					
-					case SpawnType::ENEMY:
-					{
-						if ( spawner.current < spawner.max )
+						case SpawnType::ENEMY:
 						{
 							entities->entities.spawnEnemy(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("enemy"));
-							spawner.current++;
+								
+							break;
 						}
 					
-						break;
-					}
-					
-					case SpawnType::WORKER:
-					{
-						if ( resources->workers < resources->maxWorkers )
+						case SpawnType::WORKER:
 						{
-							entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
-							resources->workers++;
-						}
+							if ( resources->workers < resources->maxWorkers )
+							{
+								entities->entities.spawnWorker(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("worker"));
+								resources->workers++;
+							}
 						
-						break;
-					}
+							break;
+						}
 					
-					case SpawnType::LYCANTHROPE:
-					{
-						if ( spawner.current < spawner.max )
+						case SpawnType::LYCANTHROPE:
 						{
 							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("werewolf"));
-							spawner.current++;
-						}
 						
-						break;
-					}
+							break;
+						}
 					
-					case SpawnType::UNDEAD:
-					{
-						if ( spawner.current < spawner.max )
+						case SpawnType::UNDEAD:
 						{
 							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("zombie"), (Vector3){25.0f, 25.0f, 25.0f}, (Vector3){0.0f, 1.0f, 0.0f}, 0.0f, "Zombie", 300.0f, 35.0f);
-							spawner.current++;
-						}
 						
-						break;
+							break;
+						}
 					}
-					
+					spawner.current++;
+					spawner.lastSpawn = clock->getFrame();
 				}
+			}
+			else
+			{
+				spawner.lastSpawn = clock->getFrame();
 			}
 		}
 	}
@@ -426,6 +422,7 @@ void Scene::placeMonument(std::shared_ptr< Tile > tile)
 void Scene::placePortal(std::shared_ptr< Tile > tile)
 {
 	std::shared_ptr< GameResources > resources = dynamic_pointer_cast< GameResources >(getModel((size_t)GameModels::RESOURCES));
+	std::shared_ptr< GameClock > clock = dynamic_pointer_cast< GameClock >(getModel((size_t)GameModels::CLOCK));
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
 	std::shared_ptr< Overlay > gui = dynamic_pointer_cast< Overlay >(getModel((size_t)GameModels::GUI));
@@ -449,6 +446,7 @@ void Scene::placePortal(std::shared_ptr< Tile > tile)
 	tile->building->getComponent< CSpawner >().spawn = SpawnType::NONE;
 	tile->building->getComponent< CSpawner >().max = 2;
 	tile->building->getComponent< CSpawner >().current = 0;
+	tile->building->getComponent< CSpawner >().lastSpawn = clock->getFrame();
 	tile->building->getComponent< CTown >().owned = false;
 	resources->maxWorkers += 2;
 	gui->getPage(Overlay::UNITS)->setEnabled(true);
@@ -845,6 +843,7 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 					gui->getPage(Overlay::UNITS)->setEnabled(false);
 					grid->getPage(GameGrid::GRID)->setActive(true);
 					int portalID = TextToInteger(gui->getPage(Overlay::UNITS)->getElements("Container").front()->getInner());
+					std::cout << portalID << std::endl;
 					for (std::shared_ptr< Entity > entity : entities->entities.getEntities())
 					{
 						if ( entity->getId() == portalID )

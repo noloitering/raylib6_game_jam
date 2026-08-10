@@ -111,12 +111,13 @@ public:
 class CSpawner : public CInterface
 {
 public:
-	CSpawner(SpawnType type=SpawnType::ENEMY, size_t rate=0, size_t maxSpawns=5, size_t currentAmount=0)
-		: spawn(type), spawnRate(rate), max(maxSpawns), current(currentAmount) {}
+	CSpawner(SpawnType type=SpawnType::ENEMY, size_t rate=0, size_t maxSpawns=5, size_t currentAmount=0, size_t start=0)
+		: spawn(type), spawnRate(rate), max(maxSpawns), current(currentAmount),  lastSpawn(start) {}
 	SpawnType spawn = SpawnType::ENEMY;
 	size_t spawnRate = 0;
 	size_t max = 5;
 	size_t current = 0;
+	size_t lastSpawn = 0;
 };
 	
 	typedef std::tuple< CTransform2D, CTransform3D, CModel, CHealth, CCost, CBuilding, CWorker, CMove, CSpawner, CTown > Components;

@@ -92,10 +92,11 @@ public:
 class CWorker : public CInterface
 {
 public:
-	CWorker(WorkerState working=WorkerState::ROAM, std::shared_ptr< Entity > enemy=nullptr)
-		: state(working) {}
+	CWorker(WorkerState working=WorkerState::ROAM, std::shared_ptr< Entity > enemy=nullptr, float detectionRange=100.0f)
+		: state(working), target(enemy), awareness(detectionRange) {}
 	WorkerState state = WorkerState::ROAM;
 	std::shared_ptr< Entity > target = nullptr;
+	float awareness = 100.0f;
 };
 
 class CMove : public CInterface
@@ -106,6 +107,16 @@ public:
 	float speed = 80.0f * (1.0f / 60.0f);
 	Vector3 home = (Vector3){0.0f, 0.0f, 0.0f};
 	Vector3 target = (Vector3){0.0f, 0.0f, 0.0f};
+};
+
+class CAttack : public CInterface
+{
+public:
+	CAttack(float magnitude=15.0f, float reach=30.0f, float speed=1.0f)
+		: damage(magnitude), range(reach), rate(speed) {}
+	float damage = 15.0f;
+	float range = 30.0f;
+	float rate = 1.0f;
 };
 
 class CSpawner : public CInterface
@@ -120,7 +131,7 @@ public:
 	size_t lastSpawn = 0;
 };
 	
-	typedef std::tuple< CTransform2D, CTransform3D, CModel, CHealth, CCost, CBuilding, CWorker, CMove, CSpawner, CTown > Components;
+	typedef std::tuple< CTransform2D, CTransform3D, CModel, CHealth, CCost, CBuilding, CWorker, CMove, CAttack, CSpawner, CTown > Components;
 //	typedef std::tuple< std::vector < CTransform > > CompContainer;
 //	typedef std::variant< CTransform > Component;
 	

@@ -1118,13 +1118,7 @@ void Scene::initialize()
 	std::shared_ptr< GameGrid > grid = dynamic_pointer_cast< GameGrid >(getModel((size_t)GameModels::GRID));
 	grid->update();
 	std::shared_ptr< EntitySystem > entities = dynamic_pointer_cast< EntitySystem >(getModel((size_t)GameModels::ENTITIES));
-	std::shared_ptr< Entity > entity = entities->entities.addEntity("Worker", "Goblin");
-	entity->addComponent< CTransform3D >((Vector3){0.0f, -360.0f, 0.0f}, Vector3{25.0f, 25.0f, 25.0f});
-	entity->addComponent< CWorker >();
-	entity->addComponent< CHealth >(50.0f, 50.0f);
-	entity->addComponent< CMove >(80.0f, (Vector3){0.0f, -360.0f, 0.0f});
-	CModel& modelComponent = entity->addComponent< CModel >();
-	modelComponent.model = game->assets->get< Model >("worker");
+	entities->entities.spawnWorker((Vector3){0.0f, -360.0f, 0.0f}, game->assets->get< Model >("worker"));
 	for(int i=0; i < grid->getPage(GameGrid::GRID)->getElements().size(); i++)
 	{
 		std::shared_ptr< Tile > cell = dynamic_pointer_cast< Tile >(grid->getPage(GameGrid::GRID)->getElements()[i]);

@@ -39,10 +39,10 @@ public:
 	void update();
 	void removeEntity(std::shared_ptr<Entity> entity);
 	std::shared_ptr< Entity > addEntity(const char* tag, const char* in="");
-	std::shared_ptr< Entity > spawnEntity(const char* tag, const char* in, const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, float health, float moveSpeed);
-	std::shared_ptr< Entity > spawnWorker(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){25.0f, 25.0f, 25.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=0.0f, const char* in="Goblin", float health=50.0f, float moveSpeed=80.0f);
-	std::shared_ptr< Entity > spawnEnemy(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){25.0f, 25.0f, 25.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=180.0f, const char* in="Human", float health=100.0f, float moveSpeed=80.0f);
-	std::shared_ptr< Entity > spawnUnit(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){20.0f, 20.0f, 20.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=0.0f, const char* in="Werewolf", float health=100.0f, float moveSpeed=100.0f);
+	std::shared_ptr< Entity > spawnEntity(const char* tag, const char* in, const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale, const Vector3& axis, float angle, float health, float moveSpeed, float damage, float reach, float attackSpeed);
+	std::shared_ptr< Entity > spawnWorker(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){25.0f, 25.0f, 25.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=0.0f, const char* in="Goblin", float health=50.0f, float moveSpeed=80.0f, float damage=-15.0f, float reach=30.0f, float attackSpeed=1.0f);
+	std::shared_ptr< Entity > spawnEnemy(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){25.0f, 25.0f, 25.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=180.0f, const char* in="Human", float health=100.0f, float moveSpeed=80.0f, float damage=15.0f, float reach=30.0f, float attackSpeed=1.0f);
+	std::shared_ptr< Entity > spawnUnit(const Vector3& point, std::shared_ptr< Model > model, const Vector3& scale=(Vector3){20.0f, 20.0f, 20.0f}, const Vector3& axis=(Vector3){0.0f, 1.0f, 0.0f}, float angle=0.0f, const char* in="Werewolf", float health=100.0f, float moveSpeed=100.0f, float damage=15.0f, float reach=30.0f, float attackSpeed=1.0f);
 	size_t getTotal();
 	EntityVec getEntities(); // in order of ID
 	EntityVec& getEntities(const std::string& tag); // in map order

@@ -404,9 +404,7 @@ public:
 			auto [closestEntity, closestEntityDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, buildings);
 			auto [closestWorker, closestWorkerDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, workers);
 			auto [closestUnit, closestUnitDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, units);
-			float meleeDistance = 30.0f;
-			float detectionDistance = 100.0f;
-			if ( closestWorkerDistance <= detectionDistance || closestUnitDistance <= detectionDistance )
+			if ( closestWorkerDistance <= enemyAI.awareness || closestUnitDistance <= enemyAI.awareness )
 			{
 				if ( closestUnitDistance <= closestWorkerDistance )
 				{
@@ -419,13 +417,13 @@ public:
 					closestEntity = closestWorker;
 				}
 			}
-			if ( closestEntityDistance <= meleeDistance )
+			if ( closestEntityDistance <= enemy->getComponent< CAttack >().range )
 			{
 				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = enemyTransform.pos;
 				enemyAI.target = closestEntity;
 			}
-			else if ( closestEntityDistance <= detectionDistance )
+			else if ( closestEntityDistance <= enemyAI.awareness )
 			{
 				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = closestEntity->getComponent< CTransform3D >().pos;
@@ -457,7 +455,7 @@ public:
 			CHealth& workerHealth = worker->getComponent< CHealth >();
 			CWorker& workerAI = worker->getComponent< CWorker >();
 			bool isFullHealth = workerHealth.hp >= workerHealth.max;
-			float maxProximity = 30.0f;
+			float maxProximity = worker->getComponent< CAttack >().range;
 			workerAI.state = WorkerState::ROAM;
 			workerAI.target = nullptr;
 			if ( isFullHealth && damagedBuildings.size() )
@@ -495,13 +493,11 @@ public:
 			CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
 			CMove& unitMove = unit->getComponent< CMove >();
 			CWorker& unitAI = unit->getComponent< CWorker >();
-			float detectionDistance = 100.0f;
-			float meleeDistance = 30.0f;
 			auto [closestEnemy, closestEnemyDistance] = getClosestEntity3D(unit->getComponent< CTransform3D >().pos, enemies);
-			if ( closestEnemyDistance <= detectionDistance && unitAI.state != WorkerState::WALK )
+			if ( closestEnemyDistance <= unitAI.awareness && unitAI.state != WorkerState::WALK )
 			{
 				unitAI.target = closestEnemy;
-				if ( closestEnemyDistance <= meleeDistance )
+				if ( closestEnemyDistance <= unit->getComponent< CAttack >().range )
 				{
 					unitAI.state = WorkerState::HEAL;
 					unitMove.target = unitTransform.pos;
@@ -583,38 +579,28 @@ public:
 			{
 				const Vector3& entityPos = entity->getComponent< CTransform3D >().pos;
 				const Vector3& targetPos = entity->getComponent< CMove >().target;
-				float meleeDistance = 30.0f; 
+				const CAttack& attack = entity->getComponent< CAttack >();
 				Vector3 direction = (Vector3){targetPos.x - entityPos.x, targetPos.y - entityPos.y, 0.0f};
 				float distance = direction.x * direction.x + direction.y * direction.y;
-				if ( distance <= meleeDistance )
+				if ( distance <= attack.range )
 				{
 					std::shared_ptr< Entity > target = entity->getComponent< CWorker >().target;
 					CHealth& targetHealth = target->getComponent< CHealth >();
-					if ( TextIsEqual("Worker", entity->getTag()) )
-					{
-						targetHealth.hp += 0.25f;
-						if ( targetHealth.hp >= targetHealth.max )
-						{
-							targetHealth.hp = targetHealth.max;
-							CBuilding& monumentBuilding = target->getComponent< CBuilding >();
-							if ( monumentBuilding.state == BuildingState::CONSTRUCTION )
-							{
-								notify(target, EntityEvent::BUILD);
-							}
-						}
-					}
-					else
-					{
-						targetHealth.hp -= 0.25f;
-					}
+					targetHealth.hp -= attack.damage / (60.0f * attack.rate);
 				}
 			}
 			CHealth& health = entity->getComponent< CHealth >();
 			if ( health.owned )
 			{
+				CBuilding& building = entity->getComponent< CBuilding >();
 				if ( health.hp < 0 )
 				{
 					notify(entity, EntityEvent::DESTROY);
+				}
+				else if ( building.owned && building.state == BuildingState::CONSTRUCTION && health.hp >= health.max )
+				{
+					health.hp = health.max;
+					notify(entity, EntityEvent::BUILD);
 				}
 			}
 		}

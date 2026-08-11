@@ -266,7 +266,7 @@ void Scene::spawnEntities()
 					
 						case SpawnType::UNDEAD:
 						{
-							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("zombie"), (Vector3){25.0f, 25.0f, 25.0f}, (Vector3){0.0f, 1.0f, 0.0f}, 0.0f, "Zombie", 300.0f, 35.0f);
+							entities->entities.spawnUnit(entity->getComponent< CTransform3D >().pos, game->assets->get< Model >("zombie"), (Vector3){25.0f, 25.0f, 25.0f}, (Vector3){0.0f, 1.0f, 0.0f}, 0.0f, "Zombie", 200.0f, 35.0f, 45.0f, 30.0f, 3.0f);
 						
 							break;
 						}

@@ -401,6 +401,7 @@ public:
 			CTransform3D& enemyTransform = enemy->getComponent< CTransform3D >();
 			CMove& enemyMove = enemy->getComponent< CMove >();
 			CWorker& enemyAI = enemy->getComponent< CWorker >();
+			CAttack& enemyAttack = enemy->getComponent< CAttack >();
 			auto [closestEntity, closestEntityDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, buildings);
 			auto [closestWorker, closestWorkerDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, workers);
 			auto [closestUnit, closestUnitDistance] = getClosestEntity3D(enemy->getComponent< CTransform3D >().pos, units);
@@ -417,17 +418,19 @@ public:
 					closestEntity = closestWorker;
 				}
 			}
-			if ( closestEntityDistance <= enemy->getComponent< CAttack >().range )
+			if ( closestEntityDistance <= enemyAttack.range )
 			{
 				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = enemyTransform.pos;
 				enemyAI.target = closestEntity;
+				enemyAttack.timer += GetFrameTime();
 			}
 			else if ( closestEntityDistance <= enemyAI.awareness )
 			{
 				enemyAI.state = WorkerState::HEAL;
 				enemyMove.target = closestEntity->getComponent< CTransform3D >().pos;
 				enemyAI.target = closestEntity;
+				enemyAttack.timer = 0.0f; // TODO? gradually decrease timer rather than set to 0 
 			}
 			else
 			{
@@ -454,6 +457,7 @@ public:
 			CMove& workerMove = worker->getComponent< CMove >();
 			CHealth& workerHealth = worker->getComponent< CHealth >();
 			CWorker& workerAI = worker->getComponent< CWorker >();
+			CAttack& workerAttack = worker->getComponent< CAttack >();
 			bool isFullHealth = workerHealth.hp >= workerHealth.max;
 			float maxProximity = worker->getComponent< CAttack >().range;
 			workerAI.state = WorkerState::ROAM;
@@ -466,11 +470,13 @@ public:
 					workerAI.state = WorkerState::HEAL;
 					workerMove.target = workerTransform.pos;
 					workerAI.target = closestMonument;
+					workerAttack.timer += GetFrameTime();
 				}
 				else
 				{
 					workerMove.target = closestMonument->getComponent< CTransform3D >().pos;
 					workerAI.target = closestMonument;
+					workerAttack.timer = 0.0f; // TODO? gradually decrease timer rather than set to 0
 				}
 			}
 			else
@@ -493,19 +499,22 @@ public:
 			CTransform3D& unitTransform = unit->getComponent< CTransform3D >();
 			CMove& unitMove = unit->getComponent< CMove >();
 			CWorker& unitAI = unit->getComponent< CWorker >();
+			CAttack& unitAttack = unit->getComponent< CAttack >();
 			auto [closestEnemy, closestEnemyDistance] = getClosestEntity3D(unit->getComponent< CTransform3D >().pos, enemies);
 			if ( closestEnemyDistance <= unitAI.awareness && unitAI.state != WorkerState::WALK )
 			{
 				unitAI.target = closestEnemy;
-				if ( closestEnemyDistance <= unit->getComponent< CAttack >().range )
+				if ( closestEnemyDistance <= unitAttack.range )
 				{
 					unitAI.state = WorkerState::HEAL;
 					unitMove.target = unitTransform.pos;
+					unitAttack.timer += GetFrameTime();
 				}
 				else
 				{
 					unitAI.state = WorkerState::HEAL;
 					unitMove.target = closestEnemy->getComponent< CTransform3D >().pos;
+					unitAttack.timer = 0.0f; // TODO? gradually decrease timer rather than set to 0
 				}
 			}
 			else if ( unitTransform.pos.x == unitMove.target.x && unitTransform.pos.y == unitMove.target.y )
@@ -575,18 +584,19 @@ public:
 	{
 		for ( std::shared_ptr< Entity > entity : entities.getEntities() )
 		{
-			if ( entity->hasComponent< CWorker >() && entity->getComponent< CWorker >().state == WorkerState::HEAL )
+			CAttack& attack = entity->getComponent< CAttack >();
+			if ( entity->hasComponent< CWorker >() && entity->getComponent< CWorker >().state == WorkerState::HEAL && attack.timer >= attack.rate )
 			{
 				const Vector3& entityPos = entity->getComponent< CTransform3D >().pos;
 				const Vector3& targetPos = entity->getComponent< CMove >().target;
-				const CAttack& attack = entity->getComponent< CAttack >();
 				Vector3 direction = (Vector3){targetPos.x - entityPos.x, targetPos.y - entityPos.y, 0.0f};
 				float distance = direction.x * direction.x + direction.y * direction.y;
 				if ( distance <= attack.range )
 				{
 					std::shared_ptr< Entity > target = entity->getComponent< CWorker >().target;
 					CHealth& targetHealth = target->getComponent< CHealth >();
-					targetHealth.hp -= attack.damage / (60.0f * attack.rate);
+					targetHealth.hp -= attack.damage;
+					attack.timer = 0.0f;
 				}
 			}
 			CHealth& health = entity->getComponent< CHealth >();

@@ -117,6 +117,7 @@ public:
 	float damage = 15.0f;
 	float range = 30.0f;
 	float rate = 1.0f;
+	float timer = 0.0f;
 };
 
 class CSpawner : public CInterface

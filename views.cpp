@@ -207,7 +207,7 @@ void Scene::spawnEntities()
 				if ( clock->getFrame() > spawner.spawnRate + spawner.lastSpawn )
 				{
 					// 1/5 chance to spawn worker from friendly unit spawner
-					if ( static_cast<int>(spawner.spawn) > static_cast<int>(SpawnType::ENEMY) && GetRandomValue(1, 100) % 5 == 0 )
+					if ( static_cast<int>(spawner.spawn) > static_cast<int>(SpawnType::ENEMY) && GetRandomValue(1, 100) % 20 == 0 )
 					{
 						if ( resources->workers < resources->maxWorkers ) // global workers
 						{

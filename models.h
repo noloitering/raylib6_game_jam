@@ -7,7 +7,6 @@
 
 const float SQRT3 = sqrt(3.0f);
 const unsigned int CELLSX = 15;
-//const unsigned int CELLSY = 15;
 const unsigned int CELLSY = CELLSX * 1.155 + 1; // approximately for the range we'll be using
 enum class GameModels {CLOCK = 0, RESOURCES = 1, GRID = 2, GUI = 3, ENTITIES = 4};
 

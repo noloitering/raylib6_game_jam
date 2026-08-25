@@ -397,7 +397,7 @@ void Scene::placeMonument(std::shared_ptr< Tile > tile)
 	building->addComponent< CHealth >();
 	Vector3 elemPosition3D = convert2DPos3D(tile->position);
 	// scale
-	float scaleFactorX = tile->width() * camera.position.y / 1000.0f;
+	float scaleFactorX = tile->width() * 0.36f;
 	float scaleFactorY = scaleFactorX - 3.0f;
 	float scaleFactorZ = scaleFactorY - 4.0f;
 	building->addComponent< CTransform3D >(elemPosition3D, Vector3{scaleFactorX, scaleFactorY, scaleFactorZ});
@@ -1135,7 +1135,7 @@ void Scene::initialize()
 			if ( townTier == '0')
 			{
 				buildingModel.model = game->assets->get< Model >("town0");
-				scaleFactorX = cell->width() * camera.position.y / 500.0f;
+				scaleFactorX = cell->width() / 1.389f;
 				angle = 180;
 				town->addComponent< CTown >(1);
 				town->addComponent< CSpawner >(SpawnType::ENEMY, 0, 0, 0);
@@ -1143,7 +1143,7 @@ void Scene::initialize()
 			else if ( townTier == '1' )
 			{
 				buildingModel.model = game->assets->get< Model >("town1");
-				scaleFactorX = cell->width() * camera.position.y / 600.0f;
+				scaleFactorX = cell->width() / 1.66f;
 				angle = 180;
 				town->addComponent< CTown >(2);
 				town->addComponent< CSpawner >(SpawnType::ENEMY, 15 * 60, 2, 0);
@@ -1151,14 +1151,14 @@ void Scene::initialize()
 			else if ( townTier == '2' )
 			{
 				buildingModel.model = game->assets->get< Model >("town2");
-				scaleFactorX = cell->width() * camera.position.y / 1000.0f;
+				scaleFactorX = cell->width() / 2.78f;
 				town->addComponent< CTown >(4);
 				town->addComponent< CSpawner >(SpawnType::ENEMY, 15 * 60, 5, 0);
 			}
 			else if ( townTier == '3' )
 			{
 				buildingModel.model = game->assets->get< Model >("town3");
-				scaleFactorX = cell->width() * camera.position.y / 1100.0f;
+				scaleFactorX = cell->width() / 3.05f;
 				town->addComponent< CTown >(6);
 				town->addComponent< CSpawner >(SpawnType::ENEMY, 10 * 60, 6, 0);
 			}

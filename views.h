@@ -8,6 +8,7 @@ const float CAMERAANGLE = 45.0f * (PI / 180.0f);
 enum class GameState {LOSS = 0, RUNNING = 1, PAUSED = 2, VICTORY = 3};
 
 Vector3 convert2DPos3D(Vector2 position2D);
+inline Camera camera = { 0 };
 
 class Scene : public NoMVC::View, public NoGUI::Listener, public Listener
 {
@@ -19,7 +20,6 @@ protected:
 	void setVictory(bool win);
 	void setPaused(bool pause);
 public:
-	Camera camera = { 0 };
 	Action currentAction;
 	Vector3 portalSize;
 	Scene(NoMVC::Controller* g, NoMVC::WindowConfig conf)
@@ -30,7 +30,7 @@ public:
 		camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };
 		camera.fovy = 720.0f * std::sin(CAMERAANGLE);
 		camera.projection = CAMERA_ORTHOGRAPHIC;
-		float scaleFactorX = 720.0f / (CELLSX * SQRT3) * 2 * camera.position.y / 1400.0f;
+		float scaleFactorX = conf.height / (CELLSX * SQRT3) * 2 * 0.257f;
 		float scaleFactorY = scaleFactorX - 2.0f;
 		float scaleFactorZ = scaleFactorY / 2.0f;
 		portalSize = (Vector3){scaleFactorX, scaleFactorY, scaleFactorZ};

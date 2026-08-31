@@ -26,28 +26,28 @@ class GameGrid : public NoGUI::Manager, public NoMVC::Model
 public:
 	enum pageEnums {GRID=0};
 	// fills
-	std::shared_ptr< NoGUI::Fill > cellFill = std::make_shared< NoGUI::Fill >((Color){254, 254, 254, 1}, (Color){100, 100, 100, 100});
-	std::shared_ptr< NoGUI::Fill > swampFill = std::make_shared< NoGUI::Fill >(PURPLE, PINK);
-	std::shared_ptr< NoGUI::Fill > convertingSwampFill = std::make_shared< NoGUI::Fill >(PINK);
-	std::shared_ptr< NoGUI::Fill > mountainFill = std::make_shared< NoGUI::Fill >(BROWN);
-	std::shared_ptr< NoGUI::Fill > townFill = std::make_shared< NoGUI::Fill >(GOLD, ORANGE);
-	std::shared_ptr< NoGUI::Fill > portalFill = std::make_shared< NoGUI::Fill >(GREEN, LIME);
-	std::shared_ptr< NoGUI::Fill > convertingPortalFill = std::make_shared< NoGUI::Fill >(GOLD);
-	std::shared_ptr< NoGUI::Fill > monumentFill = std::make_shared< NoGUI::Fill >(DARKPURPLE);
+	inline static std::shared_ptr< NoGUI::Fill > cellFill = std::make_shared< NoGUI::Fill >((Color){254, 254, 254, 1}, (Color){100, 100, 100, 100});
+	inline static std::shared_ptr< NoGUI::Fill > swampFill = std::make_shared< NoGUI::Fill >(PURPLE, PINK);
+	inline static std::shared_ptr< NoGUI::Fill > convertingSwampFill = std::make_shared< NoGUI::Fill >(PINK);
+	inline static std::shared_ptr< NoGUI::Fill > mountainFill = std::make_shared< NoGUI::Fill >(BROWN);
+	inline static std::shared_ptr< NoGUI::Fill > townFill = std::make_shared< NoGUI::Fill >(GOLD, ORANGE);
+	inline static std::shared_ptr< NoGUI::Fill > portalFill = std::make_shared< NoGUI::Fill >(GREEN, LIME);
+	inline static std::shared_ptr< NoGUI::Fill > convertingPortalFill = std::make_shared< NoGUI::Fill >(GOLD);
+	inline static std::shared_ptr< NoGUI::Fill > monumentFill = std::make_shared< NoGUI::Fill >(DARKPURPLE);
 	// outlines
-	std::shared_ptr< NoGUI::Fill > nonWorkableOutlineFill = std::make_shared< NoGUI::Fill >(BLACK, RED);
-	std::shared_ptr< NoGUI::Fill > workableOutlineFill = std::make_shared< NoGUI::Fill >(BLACK, DARKBLUE);
-	std::shared_ptr< NoGUI::Outline > nonWorkableOutline = std::make_shared< NoGUI::Outline >(nonWorkableOutlineFill, 2);
-	std::shared_ptr< NoGUI::Outline > workableOutline = std::make_shared< NoGUI::Outline >(workableOutlineFill, 2);
+	inline static std::shared_ptr< NoGUI::Fill > nonWorkableOutlineFill = std::make_shared< NoGUI::Fill >(BLACK, RED);
+	inline static std::shared_ptr< NoGUI::Fill > workableOutlineFill = std::make_shared< NoGUI::Fill >(BLACK, DARKBLUE);
+	inline static std::shared_ptr< NoGUI::Outline > nonWorkableOutline = std::make_shared< NoGUI::Outline >(nonWorkableOutlineFill, 2);
+	inline static std::shared_ptr< NoGUI::Outline > workableOutline = std::make_shared< NoGUI::Outline >(workableOutlineFill, 2);
 	// shapes
-	std::shared_ptr< NoGUI::nShape > cellShape =  std::make_shared< NoGUI::nShape >(6, cellFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > swampShape =  std::make_shared< NoGUI::nShape >(6, swampFill, workableOutline);
-	std::shared_ptr< NoGUI::nShape > mountainShape = std::make_shared< NoGUI::nShape >(6, mountainFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > townShape =  std::make_shared< NoGUI::nShape >(6, townFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > monumentShape = std::make_shared< NoGUI::nShape >(6, monumentFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > convertingSwampShape = std::make_shared< NoGUI::nShape >(6, convertingSwampFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > portalShape = std::make_shared< NoGUI::nShape >(6, portalFill, nonWorkableOutline);
-	std::shared_ptr< NoGUI::nShape > convertingPortalShape = std::make_shared< NoGUI::nShape >(6, convertingPortalFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > cellShape =  std::make_shared< NoGUI::nShape >(6, cellFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > swampShape =  std::make_shared< NoGUI::nShape >(6, swampFill, workableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > mountainShape = std::make_shared< NoGUI::nShape >(6, mountainFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > townShape =  std::make_shared< NoGUI::nShape >(6, townFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > monumentShape = std::make_shared< NoGUI::nShape >(6, monumentFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > convertingSwampShape = std::make_shared< NoGUI::nShape >(6, convertingSwampFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > portalShape = std::make_shared< NoGUI::nShape >(6, portalFill, nonWorkableOutline);
+	inline static std::shared_ptr< NoGUI::nShape > convertingPortalShape = std::make_shared< NoGUI::nShape >(6, convertingPortalFill, nonWorkableOutline);
 	
 	GameGrid()
 		: NoGUI::Manager(false) {}
@@ -156,26 +156,27 @@ class Overlay : public NoGUI::Manager, public NoMVC::Model
 public:
 	enum pageNums {RESOURCES=0, TABS=1, ACTION=2, BUILDINGS=3, SPELLS=4, UNITS=5, TIPS=6, PAUSE=7, VICTORY=8};
 	// fills
-	std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
-	std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
-	std::shared_ptr< NoGUI::Fill > containerFill = std::make_shared< NoGUI::Fill >(GRAY);
-	std::shared_ptr< NoGUI::Fill > manaBarFill = std::make_shared< NoGUI::Fill >(VIOLET);
-	std::shared_ptr< NoGUI::Fill > noManaFill = std::make_shared< NoGUI::Fill >(MAROON);
-	std::shared_ptr< NoGUI::Fill > blackTextFill = std::make_shared< NoGUI::Fill >(BLACK);
-	std::shared_ptr< NoGUI::Fill > toolTipFill = std::make_shared< NoGUI::Fill >((Color){0, 0, 0, 200});
+	inline static std::shared_ptr< NoGUI::Fill > invis = std::make_shared< NoGUI::Fill >(BLANK);
+	inline static std::shared_ptr< NoGUI::Fill > tabFill = std::make_shared< NoGUI::Fill >(LIGHTGRAY, GRAY);
+	inline static std::shared_ptr< NoGUI::Fill > containerFill = std::make_shared< NoGUI::Fill >(GRAY);
+	inline static std::shared_ptr< NoGUI::Fill > manaBarFill = std::make_shared< NoGUI::Fill >(VIOLET);
+	inline static std::shared_ptr< NoGUI::Fill > noManaFill = std::make_shared< NoGUI::Fill >(MAROON);
+	inline static std::shared_ptr< NoGUI::Fill > blackTextFill = std::make_shared< NoGUI::Fill >(BLACK);
+	inline static std::shared_ptr< NoGUI::Fill > toolTipFill = std::make_shared< NoGUI::Fill >((Color){0, 0, 0, 200});
 	// outlines
-	std::shared_ptr< NoGUI::Fill > noManaOutlineFill = std::make_shared< NoGUI::Fill >(RED);
-	std::shared_ptr< NoGUI::Fill > tabOutlineFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
-	std::shared_ptr< NoGUI::Outline > tabOutline = std::make_shared< NoGUI::Outline >(tabOutlineFill, 2);
-	std::shared_ptr< NoGUI::Outline > noManaOutline = std::make_shared< NoGUI::Outline >(noManaOutlineFill, 2);
+	inline static std::shared_ptr< NoGUI::Fill > noManaOutlineFill = std::make_shared< NoGUI::Fill >(RED);
+	inline static std::shared_ptr< NoGUI::Fill > tabOutlineFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
+	inline static std::shared_ptr< NoGUI::Outline > tabOutline = std::make_shared< NoGUI::Outline >(tabOutlineFill, 2);
+	inline static std::shared_ptr< NoGUI::Outline > noManaOutline = std::make_shared< NoGUI::Outline >(noManaOutlineFill, 2);
 	// shapes
-	std::shared_ptr< NoGUI::nShape > containerShape = std::make_shared< NoGUI::nShape >(4, containerFill, tabOutline);
-	std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
-	std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
-	std::shared_ptr< NoGUI::nShape > unitShape = std::make_shared< NoGUI::nShape >(4, invis, tabOutline);
-	std::shared_ptr< NoGUI::nShape > toolTipShape = std::make_shared< NoGUI::nShape >(4, toolTipFill, tabOutline);
-	std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
-	std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
+	inline static std::shared_ptr< NoGUI::nShape > containerShape = std::make_shared< NoGUI::nShape >(4, containerFill, tabOutline);
+	inline static std::shared_ptr< NoGUI::nShape > tabShape = std::make_shared< NoGUI::nShape >(4, tabFill, tabOutline);
+	inline static std::shared_ptr< NoGUI::nShape > invisShape = std::make_shared< NoGUI::nShape >(4, invis);
+	inline static std::shared_ptr< NoGUI::nShape > unitShape = std::make_shared< NoGUI::nShape >(4, invis, tabOutline);
+	inline static std::shared_ptr< NoGUI::nShape > toolTipShape = std::make_shared< NoGUI::nShape >(4, toolTipFill, tabOutline);
+	inline static std::shared_ptr< NoGUI::nShape > manaBarShape = std::make_shared< NoGUI::nShape >(4, manaBarFill);
+	inline static std::shared_ptr< NoGUI::nShape > noManaShape = std::make_shared< NoGUI::nShape >(4, noManaFill, noManaOutline);
+	inline static std::shared_ptr< NoGUI::nShape > playShape = std::make_shared< NoGUI::nShape >(3, tabFill, tabOutline);
 	// transforms
 	NoGUI::Transform actionContainerTransform;
 	// toolTips
@@ -241,14 +242,27 @@ public:
 		std::shared_ptr< NoGUI::Page > tabPage = addPage(true);
 		std::shared_ptr< NoGUI::Fill > textFill = std::make_shared< NoGUI::Fill >(DARKGRAY);
 		std::shared_ptr< NoGUI::CContainer > tabComponents = tabPage->addComponents("Tab");
+		std::shared_ptr< NoGUI::CContainer > pauseComponents = tabPage->addComponents("Pause");
 		tabComponents->addComponent< NoGUI::CText >(textFill, nullptr, 20.0f);
+		NoGUI::CMultiShape& pauseIcon = pauseComponents->addComponent< NoGUI::CMultiShape >();
 		Vector2 tabRadius = (Vector2){35.0f, 20.0f};
+		Vector2 pauseRadius = (Vector2){20.0f, 20.0f};
+		Vector2 pauseIconRadius = (Vector2){pauseRadius.x / 2.0f - 5.0f, pauseRadius.y - 5.0f};
 		Vector2 buildPos = (Vector2){720 - tabRadius.x * 3, tabRadius.y};
 		Vector2 spellPos = (Vector2){720 - tabRadius.x, tabRadius.y};
+		Vector2 pausePos = (Vector2){10 + pauseRadius.x, 720.0f - 10.0f - pauseRadius.y};
 		NoGUI::Transform buildTransform = NoGUI::Transform(buildPos, tabRadius);
 		NoGUI::Transform spellTransform = NoGUI::Transform(spellPos, tabRadius);
+		NoGUI::Transform pauseTransform = NoGUI::Transform(pausePos, pauseRadius);
+		NoGUI::Transform pauseIconTransform0 = NoGUI::Transform((Vector2){pauseIconRadius.x + 5.0f, 0.0f}, pauseIconRadius, NoGUI::Align(-1, 0));
+		NoGUI::Transform pauseIconTransform1 = NoGUI::Transform((Vector2){pauseIconRadius.x * -1 - 5.0f, 0.0f}, pauseIconRadius, NoGUI::Align(1, 0));
+		NoGUI::Transform pauseIconTransform2 = NoGUI::Transform((Vector2){0.0f, 0.0f}, (Vector2){pauseRadius.x - 5.0f, pauseRadius.y - 5.0f}, NoGUI::Align(), 90.0f);
+		pauseIcon.shapes.push_back(std::pair< std::shared_ptr< NoGUI::nShape >, NoGUI::Transform >(tabShape, pauseIconTransform0));
+		pauseIcon.shapes.push_back(std::pair< std::shared_ptr< NoGUI::nShape >, NoGUI::Transform >(tabShape, pauseIconTransform1));
+		pauseIcon.shapes.push_back(std::pair< std::shared_ptr< NoGUI::nShape >, NoGUI::Transform >(invisShape, pauseIconTransform2));
 		tabPage->addElement< NoGUI::Button >(tabShape, buildTransform, "Tab", "Build");
 		tabPage->addElement< NoGUI::Button >(tabShape, spellTransform, "Tab", "Spells");
+		tabPage->addElement< NoGUI::Button >(invisShape, pauseTransform, "Pause", "Test");
 	}
 	void addActionSelectionPage()
 	{

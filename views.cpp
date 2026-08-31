@@ -172,6 +172,12 @@ void Scene::togglePause()
 		{
 			setPaused(true);
 			gui->getPage(Overlay::PAUSE)->enable();
+			std::shared_ptr< NoGUI::Element > pauseElement = gui->getPage(Overlay::TABS)->getElements("Pause").front();
+			NoGUI::CMultiShape& pauseShapes = pauseElement->components->getComponent< NoGUI::CMultiShape >();
+			pauseShapes.shapes[0].first = Overlay::invisShape;
+			pauseShapes.shapes[1].first = Overlay::invisShape;
+			pauseShapes.shapes[2].first = Overlay::playShape;
+
 			
 			break;
 		}
@@ -180,6 +186,11 @@ void Scene::togglePause()
 		{
 			setPaused(false);
 			gui->getPage(Overlay::PAUSE)->disable();
+			std::shared_ptr< NoGUI::Element > pauseElement = gui->getPage(Overlay::TABS)->getElements("Pause").front();
+			NoGUI::CMultiShape& pauseShapes = pauseElement->components->getComponent< NoGUI::CMultiShape >();
+			pauseShapes.shapes[0].first = Overlay::tabShape;
+			pauseShapes.shapes[1].first = Overlay::tabShape;
+			pauseShapes.shapes[2].first = Overlay::invisShape;
 			
 			break;
 		}
@@ -729,7 +740,7 @@ void Scene::run()
 	manaBar->slideTo(resources->mana);
 	noManaBar->slideTo(resources->mana);
 	// controls
-	if ( IsKeyPressed(KEY_P) )
+	if ( IsKeyPressed(KEY_P) || IsKeyPressed(KEY_SPACE) )
 	{
 		togglePause();
 	}
@@ -811,6 +822,10 @@ void Scene::onNotify(std::shared_ptr< NoGUI::Element > elem, NoGUI::HoverEvent h
 				gui->getPage(Overlay::TABS)->setActive(false);
 				gui->getPage(Overlay::ACTION)->setEnabled(true);
 				gui->getPage(Overlay::SPELLS)->setEnabled(true);
+			}
+			else if ( TextIsEqual("Pause", elem->getTag()) )
+			{
+				togglePause();
 			}
 			else if ( TextIsEqual("Unit", elem->getTag()) )
 			{
